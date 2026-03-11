@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/Petroviiic/ScreenScore/internal/env"
 	"github.com/joho/godotenv"
@@ -26,5 +27,12 @@ func main() {
 		config: cfg,
 	}
 
-	app.Mount()
+	router := app.Mount()
+
+	if err := http.ListenAndServe(":8000", router); err != nil {
+		log.Panic("error starting the server")
+		return
+	}
+
+	log.Printf("server started at port: %v", ":8080")
 }
