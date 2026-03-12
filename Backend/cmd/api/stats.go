@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
@@ -24,7 +23,6 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 		_ = writeJsonError(w, http.StatusInternalServerError, "error parsing request body")
 		return
 	}
-
 	fmt.Println(stats, userId)
 	currentRecordTime, err := time.Parse(time.RFC3339, stats.RecordedAt)
 
@@ -35,13 +33,17 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("recorded at", currentRecordTime)
 
 	ctx := r.Context()
-	record, err := app.storage.StatsStorage.GetUsersLast(ctx, int64(userId))
-	if err != nil {
-		if err != sql.ErrNoRows {
-			//ne dozvoli upis, ispisi poruku
-			return
-		}
+	if err := app.storage.StatsStorage.AddNewRecord(ctx, int64(userId), stats.ScreenTime, currentRecordTime.UTC()); err != nil {
+		_ = writeJsonError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
+	// record, err := app.storage.StatsStorage.GetUsersLast(ctx, int64(userId))
+	// if err != nil {
+	// 	if err != sql.ErrNoRows {
+	// 		//ne dozvoli upis, ispisi poruku
+	// 		return
+	// 	}
+	// }
 
-	fmt.Println(record.RecordedAt)
+	// fmt.Println(record.RecordedAt)
 }

@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 type Storage struct {
@@ -11,6 +12,7 @@ type Storage struct {
 	}
 	StatsStorage interface {
 		GetUsersLast(context.Context, int64) (*UsageRecord, error)
+		AddNewRecord(context.Context, int64, int32, time.Time) error
 	}
 }
 

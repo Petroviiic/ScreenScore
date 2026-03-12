@@ -37,3 +37,22 @@ func (s *StatsStorage) GetUsersLast(ctx context.Context, userId int64) (*UsageRe
 	}
 	return record, nil
 }
+
+func (s *StatsStorage) AddNewRecord(ctx context.Context, userId int64, screenTime int32, recordedAt time.Time) error {
+	query := ` 	INSERT INTO screen_time_logs(user_id, screen_time, recorded_at) 
+				VALUES($1, $2, $3);
+			`
+
+	_, err := s.db.ExecContext(
+		ctx,
+		query,
+		userId,
+		screenTime,
+		recordedAt,
+	)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
