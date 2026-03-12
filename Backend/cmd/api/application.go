@@ -55,8 +55,13 @@ func (app *Application) mount() http.Handler {
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.GetHealth)
 
-		r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-			app.storage.UserStorage.GetById()
+		r.Route("/users", func(r chi.Router) {
+			r.Post("/get-by-id", app.GetById)
+		})
+
+		r.Route("/stats", func(r chi.Router) {
+			r.Post("/sync-stats", app.SyncStats)
+			r.Get("/get-stats", app.GetUserStats)
 		})
 	})
 
