@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"log"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -12,6 +13,7 @@ func NewDb(addr string, maxIdleConns, maxOpenConns int, maxIdleTime string) (*sq
 	db, err := sql.Open("postgres", addr)
 
 	if err != nil {
+		log.Println("JEBEM OVDJE")
 		return nil, err
 	}
 
@@ -29,6 +31,7 @@ func NewDb(addr string, maxIdleConns, maxOpenConns int, maxIdleTime string) (*sq
 
 	err = db.PingContext(ctx)
 	if err != nil {
+		log.Println("JEBEM OVDJE 2")
 		return nil, err
 	}
 
