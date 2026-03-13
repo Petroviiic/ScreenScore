@@ -3,14 +3,13 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 )
 
 type UserStats struct {
-	RecordedAt string `json:"recorded_at"`
-	ScreenTime int32  `json:"screen_time"`
+	RecordedAt string `json:"recorded_at" validate:"required"`
+	ScreenTime int32  `json:"screen_time" validate:"required"`
 }
 
 func (app *Application) GetUserStats(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +21,7 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 	var stats UserStats
 
 	if err := readJson(w, r, &stats); err != nil {
-		app.internalServerErrorJson(w, r, err)
+		app.badRequestResponse(w, r, err)
 		return
 	}
 	currentRecordTime, err := time.Parse(time.RFC3339, stats.RecordedAt)
@@ -33,7 +32,7 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 	currentRecordTime = currentRecordTime.UTC()
 
 	if currentRecordTime.After(time.Now().UTC().Add(10 * time.Minute)) {
-		log.Println("new record is sent from the future")
+		app.badRequestResponse(w, r, fmt.Errorf("new record is sent from the future"))
 		return
 	}
 
@@ -49,35 +48,41 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 			app.internalServerErrorJson(w, r, err)
 			return
 		}
-		if err := jsonResponse(w, http.StatusAccepted, "database updated"); err != nil {
+		if err := jsonResponse(w, http.StatusCreated, "database updated"); err != nil {
 			app.internalServerErrorJson(w, r, err)
 			return
 		}
+		return
 	}
 
-	log.Println("current stats:", stats.ScreenTime, currentRecordTime)
-	log.Println("last stats:", lastRecord.ScreenTime, lastRecord.RecordedAt)
+	// log.Println("current stats:", stats.ScreenTime, currentRecordTime)
+	// log.Println("last stats:", lastRecord.ScreenTime, lastRecord.RecordedAt)
 	currYear, currMonth, currDay := currentRecordTime.Date()
 	lastYear, lastMonth, lastDay := lastRecord.RecordedAt.Date()
 
 	if currentRecordTime.Before(lastRecord.RecordedAt) {
-		log.Println("new record time cant be before the last one")
+		app.badRequestResponse(w, r, fmt.Errorf("new record timestamp cannot be earlier than the last one"))
 		return
 	}
 
 	if currDay == lastDay && currMonth == lastMonth && lastYear == currYear { //same day
 		if stats.ScreenTime < lastRecord.ScreenTime {
+			app.badRequestResponse(w, r, fmt.Errorf("new screen time cannot be lower than the previous record"))
 			return
 		}
 		if stats.ScreenTime-lastRecord.ScreenTime > int32(currentRecordTime.Sub(lastRecord.RecordedAt).Minutes()) {
-			log.Printf("too big screen time difference. the user couldn't have used phone this much in the timespan from the last recorded timestamp")
+			app.badRequestResponse(w, r, fmt.Errorf("screen time increase exceeds elapsed real time"))
+			return
+		}
+		if stats.ScreenTime == lastRecord.ScreenTime {
+			app.badRequestResponse(w, r, fmt.Errorf("screen time is the same as the last one"))
 			return
 		}
 
 	}
 	todayMidnight := time.Date(currYear, currMonth, currDay, 0, 0, 0, 0, time.UTC)
 	if stats.ScreenTime > int32(currentRecordTime.Sub(todayMidnight).Minutes()) {
-		log.Printf("current screen time cant be longer than the duration of the current day")
+		app.badRequestResponse(w, r, fmt.Errorf("current screen time cant be longer than the duration of the current day"))
 		return
 	}
 
@@ -86,7 +91,7 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := jsonResponse(w, http.StatusAccepted, "database updated"); err != nil {
+	if err := jsonResponse(w, http.StatusCreated, "database updated"); err != nil {
 		app.internalServerErrorJson(w, r, err)
 		return
 	}
