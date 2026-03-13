@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -9,54 +12,98 @@ import (
 )
 
 func TestValidateScreenTime(t *testing.T) {
-	// app := &Application{
-	// 	config:  Config{},
-	// 	storage: storage.NewMockStorage(),
-	// }
-	// mux := app.mount()
+	app := newTestApplication(t)
+	mux := app.mount()
 
 	type testCase struct {
-		name         string
-		lastRecord   storage.UsageRecord
-		currentStats storage.UsageRecord
-		currentTime  time.Time
-		wantErr      bool
+		name               string
+		lastRecord         storage.UsageRecord
+		currentScreenTime  int32
+		currentTime        string
+		expectedStatusCode int
 	}
+
+	refTime, _ := time.Parse(time.RFC3339, "2026-03-13T12:00:00+01:00")
+	refTime = refTime.UTC()
 
 	tests := []testCase{
 		{
-			name:         "Validan rast unutar istog dana",
-			lastRecord:   storage.UsageRecord{ScreenTime: 100, RecordedAt: time.Now().UTC().Add(-1 * time.Hour)},
-			currentStats: storage.UsageRecord{ScreenTime: 130}, // 30 min rasta u 60 min vremena
-			currentTime:  time.Now().UTC(),
-			wantErr:      false,
+			name:               "30 mins of screentime in 1 hour. Ok",
+			lastRecord:         storage.UsageRecord{ScreenTime: 100, RecordedAt: refTime.Add(-1 * time.Hour)},
+			currentScreenTime:  130,
+			currentTime:        refTime.Format(time.RFC3339),
+			expectedStatusCode: http.StatusCreated,
 		},
 		{
-			name:         "Prevara: Brži rast od realnog vremena",
-			lastRecord:   storage.UsageRecord{ScreenTime: 100, RecordedAt: time.Now().UTC().Add(-10 * time.Minute)},
-			currentStats: storage.UsageRecord{ScreenTime: 120}, // 20 min rasta u 10 min vremena - NEMOGUĆE
-			currentTime:  time.Now().UTC(),
-			wantErr:      true,
+			name:               "20 mins of screentime in 10 mins. Impossible. Deny request",
+			lastRecord:         storage.UsageRecord{ScreenTime: 100, RecordedAt: refTime.Add(-10 * time.Minute)},
+			currentScreenTime:  120,
+			currentTime:        refTime.Format(time.RFC3339),
+			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:         "Reset: Novi dan (manje minuta nego juče)",
-			lastRecord:   storage.UsageRecord{ScreenTime: 500, RecordedAt: time.Now().UTC().Add(-24 * time.Hour)},
-			currentStats: storage.UsageRecord{ScreenTime: 10}, // Novi dan, krenuo od nule
-			currentTime:  time.Now().UTC(),
-			wantErr:      false,
+			name:               "New record sent before the last saved. Deny request",
+			lastRecord:         storage.UsageRecord{ScreenTime: 100, RecordedAt: refTime.Add(10 * time.Minute)},
+			currentScreenTime:  120,
+			currentTime:        refTime.Format(time.RFC3339),
+			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:         "Budućnost: Sat na telefonu pomjeren unaprijed",
-			lastRecord:   storage.UsageRecord{ScreenTime: 100, RecordedAt: time.Now().UTC()},
-			currentStats: storage.UsageRecord{ScreenTime: 110},
-			currentTime:  time.Now().UTC().Add(2 * time.Hour), // 2 sata u budućnosti
-			wantErr:      true,
+			name:               "New screentime longer than duration of the current day. Deny",
+			lastRecord:         storage.UsageRecord{ScreenTime: 150, RecordedAt: refTime},
+			currentScreenTime:  800,
+			currentTime:        refTime.Format(time.RFC3339),
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "Lower screen time than the last record the same day. Deny",
+			lastRecord:         storage.UsageRecord{ScreenTime: 150, RecordedAt: refTime.Add(-1 * time.Hour)},
+			currentScreenTime:  130,
+			currentTime:        refTime.Format(time.RFC3339),
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "Reset: Accept lower screen time, because it's a different day",
+			lastRecord:         storage.UsageRecord{ScreenTime: 500, RecordedAt: refTime.Add(-24 * time.Hour)},
+			currentScreenTime:  10,
+			currentTime:        refTime.Format(time.RFC3339),
+			expectedStatusCode: http.StatusCreated,
+		},
+		{
+			name:               "Record sent from the future. Deny",
+			lastRecord:         storage.UsageRecord{ScreenTime: 100, RecordedAt: time.Now().UTC()},
+			currentScreenTime:  110,
+			currentTime:        time.Now().UTC().Add(2 * time.Hour).Format(time.RFC3339),
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "Screen time is the same as the last one. Deny",
+			lastRecord:         storage.UsageRecord{ScreenTime: 100, RecordedAt: refTime.Add(-1 * time.Hour)},
+			currentScreenTime:  100,
+			currentTime:        refTime.Format(time.RFC3339),
+			expectedStatusCode: http.StatusBadRequest,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			http.NewRequest("POST", "/v1/stats/sync-stats", nil)
+			mock := app.storage.StatsStorage.(*storage.StatsMockStorage)
+
+			mock.GetUsersLastFunc = func(ctx context.Context, userID int64) (*storage.UsageRecord, error) {
+				return &storage.UsageRecord{
+					ScreenTime: tc.lastRecord.ScreenTime,
+					RecordedAt: tc.lastRecord.RecordedAt,
+				}, nil
+			}
+			jsonBody := fmt.Sprintf(`{"screen_time": %d, "recorded_at": "%s"}`, tc.currentScreenTime, tc.currentTime)
+			req, err := http.NewRequest(http.MethodPost, "/v1/stats/sync-stats", strings.NewReader(jsonBody))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			resp := executeRequest(req, mux)
+
+			checkResponseCode(t, tc.expectedStatusCode, resp.Code)
 		})
 	}
 }
