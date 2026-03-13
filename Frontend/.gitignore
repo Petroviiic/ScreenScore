@@ -41,3 +41,9 @@ app-example
 # generated native folders
 /ios
 /android
+!android/app/src/main/java/com/nik0la11/frontend/ScreenTimeModule.kt
+!android/app/src/main/java/com/nik0la11/frontend/ScreenTimePackage.kt
+!android/app/src/main/java/com/nik0la11/frontend/ScreenTimeManager.kt
+!android/app/src/main/java/com/nik0la11/frontend/MainApplication.kt
+!android/app/src/main/AndroidManifest.xml
+!android/app/src/main/java/com/nik0la11/frontend/ScreenTimeWorkManager.kt

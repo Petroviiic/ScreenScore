@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -79,6 +79,7 @@ export default function Home() {
   const checkPermission = useCallback(async () => {
     try {
       const granted = await ScreenTimeModule.checkPermission();
+      console.log("checkPermission result:", granted);
       setHasPermission(granted);
       return granted;
     } catch (err) {
@@ -92,6 +93,28 @@ export default function Home() {
     await Linking.sendIntent("android.settings.USAGE_ACCESS_SETTINGS");
   }, []);
 
+  // ── Send data to backend ──────────────────────
+  const isSyncing = useRef(false);
+
+  const syncToBackend = useCallback(async (stats) => {
+    if (isSyncing.current) return;
+    isSyncing.current = true;
+    try {
+      await fetch("http://192.168.1.16:3000/v1/stats/sync-stats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          screen_time: Math.floor(stats.totalTimeMs / 60000),
+          recorded_at: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      console.log("Sync error:", err);
+    } finally {
+      isSyncing.current = false;
+    }
+  }, []);
+
   // ── Fetch screen-time data for current week (Mon-Sun) ──────────────────────
   const fetchWeekData = useCallback(async () => {
     setLoading(true);
@@ -102,6 +125,9 @@ export default function Home() {
         setLoading(false);
         return;
       }
+
+      // Send data when user opens app
+      await syncToBackend(stats);
 
       const days = getCurrentWeekDays();
       const today = new Date();
