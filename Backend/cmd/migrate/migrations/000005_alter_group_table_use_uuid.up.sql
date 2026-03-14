@@ -1,0 +1,8 @@
+DROP TABLE IF EXISTS groups CASCADE;
+
+CREATE TABLE groups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    invite_code VARCHAR(10) UNIQUE NOT NULL,
+    created_at TIMESTAMP(0) WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
