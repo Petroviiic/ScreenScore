@@ -22,6 +22,9 @@ func (u *UserStorage) GetById(ctx context.Context, userId int64) (*User, error) 
 	query := `	SELECT id, email, username, password, created_at FROM users 
 				WHERE id = $1`
 
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	user := &User{}
 	err := u.db.QueryRowContext(
 		ctx,
