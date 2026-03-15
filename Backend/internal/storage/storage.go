@@ -13,12 +13,17 @@ type Storage struct {
 	StatsStorage interface {
 		GetUsersLast(context.Context, int64) (*UsageRecord, error)
 		AddNewRecord(context.Context, int64, int32, time.Time) error
+		GetGroupStats(context.Context, string) ([]*GroupStats, error)
+	}
+	GroupsStorage interface {
+		CheckIfMember(context.Context, int64, string) bool
 	}
 }
 
 func NewStorage(db *sql.DB) *Storage {
 	return &Storage{
-		UserStorage:  &UserStorage{db},
-		StatsStorage: &StatsStorage{db},
+		UserStorage:   &UserStorage{db},
+		StatsStorage:  &StatsStorage{db},
+		GroupsStorage: &GroupsStorage{db},
 	}
 }
