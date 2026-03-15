@@ -58,6 +58,7 @@ func (app *Application) mount() http.Handler {
 
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/get-by-id", app.GetById)
+			r.Post("/register", app.RegisterUser)
 		})
 
 		r.Route("/stats", func(r chi.Router) {
@@ -70,6 +71,7 @@ func (app *Application) mount() http.Handler {
 			r.Post("/join/{inviteCode}", app.JoinGroup)
 			r.Post("/leave/{groupId}", app.LeaveGroup)
 		})
+
 	})
 
 	return r

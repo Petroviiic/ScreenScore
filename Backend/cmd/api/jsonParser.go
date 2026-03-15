@@ -12,7 +12,7 @@ var Validate *validator.Validate
 
 func init() {
 	Validate = validator.New(validator.WithRequiredStructEnabled())
-	Validate.RegisterValidation("validduration", func(fl validator.FieldLevel) bool {
+	_ = Validate.RegisterValidation("validduration", func(fl validator.FieldLevel) bool {
 		durationStr := fl.Field().String()
 		_, err := time.ParseDuration(durationStr)
 		return err == nil
