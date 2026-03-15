@@ -19,8 +19,9 @@ type Application struct {
 }
 
 type Config struct {
-	addr     string
-	dbConfig DBConfig
+	addr            string
+	dbConfig        DBConfig
+	maxGroupNameLen int
 }
 
 type DBConfig struct {
@@ -61,7 +62,13 @@ func (app *Application) mount() http.Handler {
 
 		r.Route("/stats", func(r chi.Router) {
 			r.Post("/sync-stats", app.SyncStats)
-			r.Get("/get-stats", app.GetUserStats)
+			r.Get("/get-group-stats/{groupID}", app.GetGroupStats)
+		})
+
+		r.Route("/groups", func(r chi.Router) {
+			r.Post("/create/{groupName}", app.CreateGroup)
+			r.Post("/join/{inviteCode}", app.JoinGroup)
+			r.Post("/leave/{groupId}", app.LeaveGroup)
 		})
 	})
 
