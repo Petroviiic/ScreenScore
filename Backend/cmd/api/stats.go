@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type UserStats struct {
+type UserStatsPayload struct {
 	RecordedAt string `json:"recorded_at" validate:"required"`
 	ScreenTime int32  `json:"screen_time" validate:"required"`
 }
@@ -21,7 +21,7 @@ func (app *Application) GetGroupStats(w http.ResponseWriter, r *http.Request) {
 	groupId := chi.URLParam(r, "groupID")
 
 	ctx := r.Context()
-	if !app.storage.GroupsStorage.CheckIfMember(ctx, userId, groupId) {
+	if !app.storage.GroupStorage.CheckIfMember(ctx, userId, groupId) {
 		log.Printf("user with id: %d is not a member of group with id: %s", userId, groupId)
 		app.forbiddenResponse(w, r)
 		return
@@ -41,9 +41,13 @@ func (app *Application) GetGroupStats(w http.ResponseWriter, r *http.Request) {
 
 func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 	userId := 1
-	var stats UserStats
+	var stats UserStatsPayload
 
 	if err := readJson(w, r, &stats); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if err := Validate.Struct(stats); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
