@@ -16,10 +16,21 @@ type UsageRecord struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+type GroupStats struct {
+	ID         int64     `json:"id"`
+	Email      string    `json:"email"`
+	Username   string    `json:"username"`
+	ScreenTime int32     `json:"screen_time"`
+	RecordedAt time.Time `json:"recorded_at"`
+}
+
 func (s *StatsStorage) GetUsersLast(ctx context.Context, userId int64) (*UsageRecord, error) {
 	query := `	SELECT screen_time, recorded_at, created_at FROM screen_time_logs 
 				WHERE user_id = $1
 				ORDER BY recorded_at DESC LIMIT 1;`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
 	record := &UsageRecord{}
 	err := s.db.QueryRowContext(
@@ -42,6 +53,8 @@ func (s *StatsStorage) AddNewRecord(ctx context.Context, userId int64, screenTim
 	query := ` 	INSERT INTO screen_time_logs(user_id, screen_time, recorded_at) 
 				VALUES($1, $2, $3);
 			`
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
 	_, err := s.db.ExecContext(
 		ctx,
@@ -55,4 +68,59 @@ func (s *StatsStorage) AddNewRecord(ctx context.Context, userId int64, screenTim
 		return err
 	}
 	return nil
+}
+
+func (s *StatsStorage) GetGroupStats(ctx context.Context, groupId string) ([]*GroupStats, error) {
+	query := `	WITH group_users AS (
+					SELECT user_id FROM group_members WHERE group_id = $1
+				),
+				ranked_stats AS (
+					SELECT user_id, screen_time, recorded_at,
+						ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY recorded_at DESC, screen_time DESC) as rn
+					FROM screen_time_logs
+					WHERE user_id IN (SELECT user_id FROM group_users)
+					--AND recorded_at::DATE = CURRENT_DATE 
+				)
+				SELECT 
+					gu.user_id, 
+					u.email, 
+					u.username, 
+					rs.screen_time, 
+					rs.recorded_at 
+				FROM group_users gu
+				JOIN users u ON u.id = gu.user_id
+				JOIN ranked_stats rs ON rs.user_id = gu.user_id AND rs.rn = 1 
+				ORDER BY rs.screen_time DESC; `
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	rows, err := s.db.QueryContext(
+		ctx,
+		query,
+		groupId,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var stats []*GroupStats
+	for rows.Next() {
+		stat := &GroupStats{}
+		err := rows.Scan(
+			&stat.ID,
+			&stat.Email,
+			&stat.Username,
+			&stat.ScreenTime,
+			&stat.RecordedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		stats = append(stats, stat)
+	}
+
+	return stats, nil
 }

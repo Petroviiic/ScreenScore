@@ -3,8 +3,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type UserStats struct {
@@ -12,8 +15,28 @@ type UserStats struct {
 	ScreenTime int32  `json:"screen_time" validate:"required"`
 }
 
-func (app *Application) GetUserStats(w http.ResponseWriter, r *http.Request) {
+func (app *Application) GetGroupStats(w http.ResponseWriter, r *http.Request) {
+	//TODO - userId
+	userId := int64(2)
+	groupId := chi.URLParam(r, "groupID")
 
+	ctx := r.Context()
+	if !app.storage.GroupsStorage.CheckIfMember(ctx, userId, groupId) {
+		log.Printf("user with id: %d is not a member of group with id: %s", userId, groupId)
+		app.forbiddenResponse(w, r)
+		return
+	}
+
+	stats, err := app.storage.StatsStorage.GetGroupStats(ctx, groupId)
+	if err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+
+	if err := jsonResponse(w, http.StatusOK, stats); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
 }
 
 func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
