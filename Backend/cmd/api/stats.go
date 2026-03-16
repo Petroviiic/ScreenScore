@@ -11,6 +11,7 @@ import (
 )
 
 type UserStatsPayload struct {
+	DeviceID   string `json:"device_id" validate:"required"`
 	RecordedAt string `json:"recorded_at" validate:"required"`
 	ScreenTime int32  `json:"screen_time" validate:"required"`
 }
@@ -64,14 +65,14 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	lastRecord, err := app.storage.StatsStorage.GetUsersLast(ctx, int64(userId))
+	lastRecord, err := app.storage.StatsStorage.GetUsersLast(ctx, int64(userId), stats.DeviceID)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			app.badRequestResponse(w, r, err)
 			return
 		}
 
-		if err := app.storage.StatsStorage.AddNewRecord(ctx, int64(userId), stats.ScreenTime, currentRecordTime); err != nil {
+		if err := app.storage.StatsStorage.AddNewRecord(ctx, int64(userId), stats.ScreenTime, stats.DeviceID, currentRecordTime); err != nil {
 			app.internalServerErrorJson(w, r, err)
 			return
 		}
@@ -113,7 +114,7 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := app.storage.StatsStorage.AddNewRecord(ctx, int64(userId), stats.ScreenTime, currentRecordTime); err != nil {
+	if err := app.storage.StatsStorage.AddNewRecord(ctx, int64(userId), stats.ScreenTime, stats.DeviceID, currentRecordTime); err != nil {
 		app.internalServerErrorJson(w, r, err)
 		return
 	}

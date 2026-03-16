@@ -12,6 +12,7 @@ type StatsStorage struct {
 
 type UsageRecord struct {
 	ScreenTime int32     `json:"screen_time"`
+	DeviceID   string    `json:"device_id"`
 	RecordedAt time.Time `json:"recorded_at"`
 	CreatedAt  time.Time `json:"created_at"`
 }
@@ -24,9 +25,9 @@ type GroupStats struct {
 	RecordedAt time.Time `json:"recorded_at"`
 }
 
-func (s *StatsStorage) GetUsersLast(ctx context.Context, userId int64) (*UsageRecord, error) {
-	query := `	SELECT screen_time, recorded_at, created_at FROM screen_time_logs 
-				WHERE user_id = $1
+func (s *StatsStorage) GetUsersLast(ctx context.Context, userId int64, deviceID string) (*UsageRecord, error) {
+	query := `	SELECT screen_time, device_id recorded_at, created_at FROM screen_time_logs 
+				WHERE user_id = $1 AND device_id = $2
 				ORDER BY recorded_at DESC LIMIT 1;`
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -37,8 +38,10 @@ func (s *StatsStorage) GetUsersLast(ctx context.Context, userId int64) (*UsageRe
 		ctx,
 		query,
 		userId,
+		deviceID,
 	).Scan(
 		&record.ScreenTime,
+		&record.DeviceID,
 		&record.RecordedAt,
 		&record.CreatedAt,
 	)
@@ -49,9 +52,9 @@ func (s *StatsStorage) GetUsersLast(ctx context.Context, userId int64) (*UsageRe
 	return record, nil
 }
 
-func (s *StatsStorage) AddNewRecord(ctx context.Context, userId int64, screenTime int32, recordedAt time.Time) error {
-	query := ` 	INSERT INTO screen_time_logs(user_id, screen_time, recorded_at) 
-				VALUES($1, $2, $3);
+func (s *StatsStorage) AddNewRecord(ctx context.Context, userId int64, screenTime int32, deviceId string, recordedAt time.Time) error {
+	query := ` 	INSERT INTO screen_time_logs(user_id, screen_time, device_id, recorded_at) 
+				VALUES($1, $2, $3, $4);
 			`
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -61,6 +64,7 @@ func (s *StatsStorage) AddNewRecord(ctx context.Context, userId int64, screenTim
 		query,
 		userId,
 		screenTime,
+		deviceId,
 		recordedAt,
 	)
 
@@ -70,6 +74,7 @@ func (s *StatsStorage) AddNewRecord(ctx context.Context, userId int64, screenTim
 	return nil
 }
 
+// TODO - return sum of screentimes for each device
 func (s *StatsStorage) GetGroupStats(ctx context.Context, groupId string) ([]*GroupStats, error) {
 	query := `	WITH group_users AS (
 					SELECT user_id FROM group_members WHERE group_id = $1

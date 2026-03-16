@@ -21,6 +21,7 @@ func TestValidateScreenTime(t *testing.T) {
 		currentScreenTime  int32
 		currentTime        string
 		expectedStatusCode int
+		deviceId           string
 	}
 
 	refTime, _ := time.Parse(time.RFC3339, "2026-03-13T12:00:00+01:00")
@@ -33,6 +34,7 @@ func TestValidateScreenTime(t *testing.T) {
 			currentScreenTime:  130,
 			currentTime:        refTime.Format(time.RFC3339),
 			expectedStatusCode: http.StatusCreated,
+			deviceId:           "testdevice",
 		},
 		{
 			name:               "20 mins of screentime in 10 mins. Impossible. Deny request",
@@ -40,6 +42,7 @@ func TestValidateScreenTime(t *testing.T) {
 			currentScreenTime:  120,
 			currentTime:        refTime.Format(time.RFC3339),
 			expectedStatusCode: http.StatusBadRequest,
+			deviceId:           "testdevice",
 		},
 		{
 			name:               "New record sent before the last saved. Deny request",
@@ -47,6 +50,7 @@ func TestValidateScreenTime(t *testing.T) {
 			currentScreenTime:  120,
 			currentTime:        refTime.Format(time.RFC3339),
 			expectedStatusCode: http.StatusBadRequest,
+			deviceId:           "testdevice",
 		},
 		{
 			name:               "New screentime longer than duration of the current day. Deny",
@@ -54,6 +58,7 @@ func TestValidateScreenTime(t *testing.T) {
 			currentScreenTime:  800,
 			currentTime:        refTime.Format(time.RFC3339),
 			expectedStatusCode: http.StatusBadRequest,
+			deviceId:           "testdevice",
 		},
 		{
 			name:               "Lower screen time than the last record the same day. Deny",
@@ -61,6 +66,7 @@ func TestValidateScreenTime(t *testing.T) {
 			currentScreenTime:  130,
 			currentTime:        refTime.Format(time.RFC3339),
 			expectedStatusCode: http.StatusBadRequest,
+			deviceId:           "testdevice",
 		},
 		{
 			name:               "Reset: Accept lower screen time, because it's a different day",
@@ -68,6 +74,7 @@ func TestValidateScreenTime(t *testing.T) {
 			currentScreenTime:  10,
 			currentTime:        refTime.Format(time.RFC3339),
 			expectedStatusCode: http.StatusCreated,
+			deviceId:           "testdevice",
 		},
 		{
 			name:               "Record sent from the future. Deny",
@@ -75,6 +82,7 @@ func TestValidateScreenTime(t *testing.T) {
 			currentScreenTime:  110,
 			currentTime:        time.Now().UTC().Add(2 * time.Hour).Format(time.RFC3339),
 			expectedStatusCode: http.StatusBadRequest,
+			deviceId:           "testdevice",
 		},
 		{
 			name:               "Screen time is the same as the last one. Deny",
@@ -82,6 +90,7 @@ func TestValidateScreenTime(t *testing.T) {
 			currentScreenTime:  100,
 			currentTime:        refTime.Format(time.RFC3339),
 			expectedStatusCode: http.StatusBadRequest,
+			deviceId:           "testdevice",
 		},
 	}
 
@@ -93,9 +102,10 @@ func TestValidateScreenTime(t *testing.T) {
 				return &storage.UsageRecord{
 					ScreenTime: tc.lastRecord.ScreenTime,
 					RecordedAt: tc.lastRecord.RecordedAt,
+					DeviceID:   tc.deviceId,
 				}, nil
 			}
-			jsonBody := fmt.Sprintf(`{"screen_time": %d, "recorded_at": "%s"}`, tc.currentScreenTime, tc.currentTime)
+			jsonBody := fmt.Sprintf(`{"screen_time": %d, "recorded_at": "%s", "device_id":"%s"}`, tc.currentScreenTime, tc.currentTime, tc.deviceId)
 			req, err := http.NewRequest(http.MethodPost, "/v1/stats/sync-stats", strings.NewReader(jsonBody))
 			if err != nil {
 				t.Fatal(err)
