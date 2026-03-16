@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -67,24 +66,23 @@ func (g *GroupStorage) CreateGroup(ctx context.Context, groupName string) (strin
 	return inviteCode, nil
 }
 
-func (g *GroupStorage) JoinGroup(ctx context.Context, userId int64, inviteCode string) error {
+func (g *GroupStorage) JoinGroup(ctx context.Context, userId int64, inviteCode string) (string, error) {
 	query := `
-		INSERT INTO group_members (group_id, user_id) SELECT id, $1 FROM groups WHERE invite_code = $2;
+		INSERT INTO group_members (group_id, user_id) SELECT id, $1 FROM groups WHERE invite_code = $2 RETURNING group_id;
 	`
-	resp, err := g.db.ExecContext(
+	var groupId string
+	err := g.db.QueryRowContext(
 		ctx,
 		query,
 		userId,
 		inviteCode,
+	).Scan(
+		&groupId,
 	)
 	if err != nil {
-		return err
+		return "", err
 	}
-	num, _ := resp.RowsAffected()
-	if num == 0 {
-		return errors.New(ERROR_NO_ROWS_AFFECTED)
-	}
-	return nil
+	return groupId, err
 }
 
 func (g *GroupStorage) LeaveGroup(ctx context.Context, userId int64, groupId string) error {
