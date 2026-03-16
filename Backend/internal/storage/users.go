@@ -17,7 +17,6 @@ type User struct {
 	Email     string    `json:"email"`
 	Username  string    `json:"username"`
 	Password  password  `json:"-"`
-	DeviceID  string    `json:"device_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -45,7 +44,7 @@ func (p *password) ValidatePassword(plain string) bool {
 }
 
 func (u *UserStorage) GetById(ctx context.Context, userId int64) (*User, error) {
-	query := `	SELECT id, email, username, password, device_id, created_at FROM users 
+	query := `	SELECT id, email, username, password, created_at FROM users 
 				WHERE id = $1`
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -61,7 +60,6 @@ func (u *UserStorage) GetById(ctx context.Context, userId int64) (*User, error) 
 		&user.Email,
 		&user.Username,
 		&user.Password,
-		&user.DeviceID,
 		&user.CreatedAt,
 	)
 	if err != nil {
@@ -71,25 +69,27 @@ func (u *UserStorage) GetById(ctx context.Context, userId int64) (*User, error) 
 	return user, nil
 }
 
-func (u *UserStorage) RegisterUser(ctx context.Context, user *User) error {
+func (u *UserStorage) RegisterUser(ctx context.Context, user *User) (int64, error) {
 	query := `
-			INSERT INTO users (email, username, password, device_id) VALUES ($1, $2, $3, $4);
+			INSERT INTO users (email, username, password) VALUES ($1, $2, $3) RETURNING id;
 		`
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	_, err := u.db.ExecContext(
+	var userId int64
+	err := u.db.QueryRowContext(
 		ctx,
 		query,
 		user.Email,
 		user.Username,
 		user.Password.Hash,
-		user.DeviceID,
+	).Scan(
+		&userId,
 	)
 
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return userId, nil
 }
