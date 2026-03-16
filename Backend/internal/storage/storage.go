@@ -25,6 +25,7 @@ type Storage struct {
 		CreateGroup(context.Context, string) (string, error)
 		JoinGroup(ctx context.Context, userId int64, inviteCode string) (string, error)
 		LeaveGroup(ctx context.Context, userId int64, groupId string) error
+		KickUser(context.Context, int64, string) error
 	}
 	DeviceStorage interface {
 		Update(ctx context.Context, userId int64, deviceId string, pushToken string) error

@@ -95,7 +95,7 @@ func (app *Application) JoinGroup(w http.ResponseWriter, r *http.Request) {
 // @Param        groupId  path      string  true  "Group id (URL parameter)"
 // @Success      200
 // @Failure      500        {object}  map[string]string "Internal server error"
-// @Router       /groups/leave/{groupId}	[post]
+// @Router       /groups/leave	[post]
 func (app *Application) LeaveGroup(w http.ResponseWriter, r *http.Request) {
 	userId := int64(1)
 
@@ -107,6 +107,45 @@ func (app *Application) LeaveGroup(w http.ResponseWriter, r *http.Request) {
 		app.internalServerErrorJson(w, r, err)
 		return
 	}
+	if err := jsonResponse(w, http.StatusOK, nil); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+}
+
+type KickUserPayload struct {
+	UserToKickID int64  `json:"user_to_kick_id" validate:"required"`
+	GroupID      string `json:"group_id" validate:"required"`
+}
+
+// KickUser godoc
+// @Summary      Kick user
+// @Description  Anyone can kick another group member
+// @Tags         groups
+// @Accept       json
+// @Produce      json
+// @Param        payload  body      KickUserPayload  true  "Payload with user to kick and group id"
+// @Success      200
+// @Failure      400        {object}  map[string]string "User with given id is not a member of the group"
+// @Failure      500        {object}  map[string]string "Internal server error"
+// @Router       /groups/kick	[post]
+func (app *Application) KickUser(w http.ResponseWriter, r *http.Request) {
+	var payload KickUserPayload
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	ctx := r.Context()
+	if !app.storage.GroupStorage.CheckIfMember(ctx, payload.UserToKickID, payload.GroupID) {
+		app.badRequestResponse(w, r, fmt.Errorf("user with given id is not a member of the group"))
+		return
+	}
+	if err := app.storage.GroupStorage.KickUser(ctx, payload.UserToKickID, payload.GroupID); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+
 	if err := jsonResponse(w, http.StatusOK, nil); err != nil {
 		app.internalServerErrorJson(w, r, err)
 		return

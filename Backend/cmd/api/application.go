@@ -74,6 +74,7 @@ func (app *Application) mount() http.Handler {
 			r.Post("/create/{groupName}", app.CreateGroup)
 			r.Post("/join/{inviteCode}", app.JoinGroup)
 			r.Post("/leave/{groupId}", app.LeaveGroup)
+			r.Post("/kick", app.KickUser)
 		})
 
 	})

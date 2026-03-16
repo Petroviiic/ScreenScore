@@ -100,3 +100,7 @@ func (g *GroupStorage) LeaveGroup(ctx context.Context, userId int64, groupId str
 	}
 	return nil
 }
+
+func (g *GroupStorage) KickUser(ctx context.Context, userId int64, groupId string) error {
+	return g.LeaveGroup(ctx, userId, groupId)
+}
