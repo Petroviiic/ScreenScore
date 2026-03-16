@@ -7,6 +7,16 @@ definitions:
       name:
         type: string
     type: object
+  main.KickUserPayload:
+    properties:
+      group_id:
+        type: string
+      user_to_kick_id:
+        type: integer
+    required:
+    - group_id
+    - user_to_kick_id
+    type: object
 host: localhost:3000
 info:
   contact: {}
@@ -80,7 +90,39 @@ paths:
       summary: Join group
       tags:
       - groups
-  /groups/leave/{groupId}:
+  /groups/kick:
+    post:
+      consumes:
+      - application/json
+      description: Anyone can kick another group member
+      parameters:
+      - description: Payload with user to kick and group id
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.KickUserPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: User with given id is not a member of the group
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Kick user
+      tags:
+      - groups
+  /groups/leave:
     post:
       consumes:
       - application/json

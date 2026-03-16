@@ -109,7 +109,56 @@
                 }
             }
         },
-        "/groups/leave/{groupId}": {
+        "/groups/kick": {
+            "post": {
+                "description": "Anyone can kick another group member",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Kick user",
+                "parameters": [
+                    {
+                        "description": "Payload with user to kick and group id",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.KickUserPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "User with given id is not a member of the group",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/groups/leave": {
             "post": {
                 "description": "Leaves a group",
                 "consumes": [
@@ -171,6 +220,21 @@
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "main.KickUserPayload": {
+            "type": "object",
+            "required": [
+                "group_id",
+                "user_to_kick_id"
+            ],
+            "properties": {
+                "group_id": {
+                    "type": "string"
+                },
+                "user_to_kick_id": {
+                    "type": "integer"
                 }
             }
         }
