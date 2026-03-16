@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -19,6 +18,17 @@ type GroupData struct {
 	InviteCode string `json:"invite_code"`
 }
 
+// CreateGroup godoc
+// @Summary      Create new group
+// @Description  Creates a new group and returns invite code
+// @Tags         groups
+// @Accept       json
+// @Produce      json
+// @Param        groupName  path      string  true  "Group name (URL parameter)"
+// @Success      201        {object}  GroupData
+// @Failure      400        {object}  map[string]string "Group name malformed"
+// @Failure      500        {object}  map[string]string "Internal server error"
+// @Router       /groups/create/{groupName} [post]
 func (app *Application) CreateGroup(w http.ResponseWriter, r *http.Request) {
 	groupName := chi.URLParam(r, "groupName")
 
@@ -44,8 +54,19 @@ func (app *Application) CreateGroup(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// JoinGroup godoc
+// @Summary      Join group
+// @Description  Joins a group and returns group id
+// @Tags         groups
+// @Accept       json
+// @Produce      json
+// @Param        inviteCode  path      string  true  "Invite code (URL parameter)"
+// @Success      200		{object}  string
+// @Failure      400        {object}  map[string]string "Invite code malformed"
+// @Failure      500        {object}  map[string]string "Internal server error"
+// @Router       /groups/join/{inviteCode} [post]
 func (app *Application) JoinGroup(w http.ResponseWriter, r *http.Request) {
-	userId := int64(1)
+	userId := int64(1) //CHANGE DOCS, add auth
 
 	inviteCode := chi.URLParam(r, "inviteCode")
 
@@ -53,22 +74,28 @@ func (app *Application) JoinGroup(w http.ResponseWriter, r *http.Request) {
 		app.badRequestResponse(w, r, fmt.Errorf("invite code malformed"))
 		return
 	}
-	err := app.storage.GroupStorage.JoinGroup(r.Context(), userId, inviteCode)
+	groupId, err := app.storage.GroupStorage.JoinGroup(r.Context(), userId, inviteCode)
 
 	if err != nil {
-		if errors.Is(err, errors.New("no rows affected")) {
-			app.internalServerErrorJson(w, r, errors.New("no rows affected"))
-			return
-		}
 		app.internalServerErrorJson(w, r, err)
 		return
 	}
-	if err := jsonResponse(w, http.StatusOK, nil); err != nil {
+	if err := jsonResponse(w, http.StatusOK, groupId); err != nil {
 		app.internalServerErrorJson(w, r, err)
 		return
 	}
 }
 
+// LeaveGroup godoc
+// @Summary      Leave group
+// @Description  Leaves a group
+// @Tags         groups
+// @Accept       json
+// @Produce      json
+// @Param        groupId  path      string  true  "Group id (URL parameter)"
+// @Success      200
+// @Failure      500        {object}  map[string]string "Internal server error"
+// @Router       /groups/leave/{groupId}	[post]
 func (app *Application) LeaveGroup(w http.ResponseWriter, r *http.Request) {
 	userId := int64(1)
 
