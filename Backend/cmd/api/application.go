@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"time"
 
+	_ "github.com/Petroviiic/ScreenScore/docs"
 	"github.com/Petroviiic/ScreenScore/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 type Application struct {
@@ -50,11 +52,13 @@ func (app *Application) mount() http.Handler {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-
-	})
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
 	r.Route("/v1", func(r chi.Router) {
-		r.Get("/health", app.GetHealth)
+		r.Route("/test", func(r chi.Router) {
+			r.Get("/health", app.GetHealth)
+		})
 
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/get-by-id", app.GetById)

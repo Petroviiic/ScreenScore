@@ -5,6 +5,11 @@ MIGRATIONS_PATH = ./cmd/migrate/migrations
 test:
 	@go test -v ./...
 
+.PHONY: docs
+docs:
+	@swag init --parseInternal --dir cmd/api/ --output ./docs
+
+
 .PHONY: migrate-create
 migration:
 	@migrate create -seq -ext sql -dir $(MIGRATIONS_PATH) $(filter-out $@,$(MAKECMDGOALS))

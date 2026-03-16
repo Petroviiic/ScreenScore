@@ -9,6 +9,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// @title ScreenScore Backend API
+// @version 1.0
+// @description API powering ScreenScore backend system.
+// @host localhost:3000
+// @BasePath /v1
 func main() {
 	err := godotenv.Load()
 	if err != nil {

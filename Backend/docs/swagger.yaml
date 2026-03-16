@@ -1,0 +1,117 @@
+basePath: /v1
+definitions:
+  main.GroupData:
+    properties:
+      invite_code:
+        type: string
+      name:
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: API powering ScreenScore backend system.
+  title: ScreenScore Backend API
+  version: "1.0"
+paths:
+  /groups/create/{groupName}:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new group and returns invite code
+      parameters:
+      - description: Group name (URL parameter)
+        in: path
+        name: groupName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.GroupData'
+        "400":
+          description: Group name malformed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create new group
+      tags:
+      - groups
+  /groups/join/{inviteCode}:
+    post:
+      consumes:
+      - application/json
+      description: Joins a group and returns group id
+      parameters:
+      - description: Invite code (URL parameter)
+        in: path
+        name: inviteCode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Invite code malformed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Join group
+      tags:
+      - groups
+  /groups/leave/{groupId}:
+    post:
+      consumes:
+      - application/json
+      description: Leaves a group
+      parameters:
+      - description: Group id (URL parameter)
+        in: path
+        name: groupId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Leave group
+      tags:
+      - groups
+  /health:
+    get:
+      description: Checks if the server is active.
+      responses:
+        "200":
+          description: OK
+      summary: Health check
+      tags:
+      - utils
+swagger: "2.0"
