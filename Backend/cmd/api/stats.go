@@ -7,20 +7,33 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Petroviiic/ScreenScore/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
+var _ = storage.GroupStats{}
+
 type UserStatsPayload struct {
 	DeviceID   string `json:"device_id" validate:"required"`
-	RecordedAt string `json:"recorded_at" validate:"required"`
+	RecordedAt string `json:"recorded_at" validate:"required" example:"2026-03-17T12:00:00Z"`
 	ScreenTime int32  `json:"screen_time" validate:"required"`
 }
 
+// GetGroupStats godoc
+// @Summary      Retrieves screentime data for all group memebers
+// @Tags         stats
+// @Accept       json
+// @Produce      json
+// @Param        groupID  path      string  true  "Group id (URL parameter)"
+// @Success      200		{array}   storage.GroupStats
+// @Failure      403        {object}  map[string]string "User with given id is not a member of the group"
+// @Failure      500        {object}  map[string]string "Internal server error"
+// @Router       /stats/get-group-stats/{groupID}	[get]
 func (app *Application) GetGroupStats(w http.ResponseWriter, r *http.Request) {
-	//TODO - userId
+	//TODO - userId, add auth
 	userId := int64(2)
-	groupId := chi.URLParam(r, "groupID")
 
+	groupId := chi.URLParam(r, "groupID")
 	ctx := r.Context()
 	if !app.storage.GroupStorage.CheckIfMember(ctx, userId, groupId) {
 		log.Printf("user with id: %d is not a member of group with id: %s", userId, groupId)
@@ -40,8 +53,20 @@ func (app *Application) GetGroupStats(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// SyncStats godoc
+// @Summary      Synchronize user screen time
+// @Description  Updates or adds a new screen time record for a specific device.
+// @Description  Includes logic to prevent "cheating" (time from future, screen time increasing faster than real time, etc.)
+// @Tags         stats
+// @Accept       json
+// @Produce      json
+// @Param        payload  body      UserStatsPayload  true  "User screen time data"
+// @Success      201      {string}  string            "database updated"
+// @Failure      400      {object}  map[string]string "Validation error (Future time, time travel, invalid increments)"
+// @Failure      500      {object}  map[string]string "Internal server error"
+// @Router       /stats/sync-stats [post]
 func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
-	userId := 1
+	userId := 1 //TODO, add auth docs
 	var stats UserStatsPayload
 
 	if err := readJson(w, r, &stats); err != nil {

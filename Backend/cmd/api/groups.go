@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 
@@ -30,6 +31,8 @@ type GroupData struct {
 // @Failure      500        {object}  map[string]string "Internal server error"
 // @Router       /groups/create/{groupName} [post]
 func (app *Application) CreateGroup(w http.ResponseWriter, r *http.Request) {
+	//TODO add auth to docs
+
 	groupName := chi.URLParam(r, "groupName")
 
 	if !isValidString(groupName, app.config.maxGroupNameLen) {
@@ -97,7 +100,7 @@ func (app *Application) JoinGroup(w http.ResponseWriter, r *http.Request) {
 // @Failure      500        {object}  map[string]string "Internal server error"
 // @Router       /groups/leave	[post]
 func (app *Application) LeaveGroup(w http.ResponseWriter, r *http.Request) {
-	userId := int64(1)
+	userId := int64(1) //TODO add auth
 
 	groupId := chi.URLParam(r, "groupId")
 
@@ -126,10 +129,12 @@ type KickUserPayload struct {
 // @Produce      json
 // @Param        payload  body      KickUserPayload  true  "Payload with user to kick and group id"
 // @Success      200
-// @Failure      400        {object}  map[string]string "User with given id is not a member of the group"
+// @Failure      403        {object}  map[string]string "User with given id is not a member of the group"
 // @Failure      500        {object}  map[string]string "Internal server error"
 // @Router       /groups/kick	[post]
 func (app *Application) KickUser(w http.ResponseWriter, r *http.Request) {
+	//TODO add auth to docs
+
 	var payload KickUserPayload
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequestResponse(w, r, err)
@@ -138,7 +143,8 @@ func (app *Application) KickUser(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	if !app.storage.GroupStorage.CheckIfMember(ctx, payload.UserToKickID, payload.GroupID) {
-		app.badRequestResponse(w, r, fmt.Errorf("user with given id is not a member of the group"))
+		log.Printf("user with id: %d is not a member of group with id: %s", payload.UserToKickID, payload.GroupID)
+		app.forbiddenResponse(w, r)
 		return
 	}
 	if err := app.storage.GroupStorage.KickUser(ctx, payload.UserToKickID, payload.GroupID); err != nil {

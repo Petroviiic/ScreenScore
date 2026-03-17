@@ -143,7 +143,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK"
                     },
-                    "400": {
+                    "403": {
                         "description": "User with given id is not a member of the group",
                         "schema": {
                             "type": "object",
@@ -215,6 +215,162 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/stats/get-group-stats/{groupID}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "stats"
+                ],
+                "summary": "Retrieves screentime data for all group memebers",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group id (URL parameter)",
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/storage.GroupStats"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "User with given id is not a member of the group",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/stats/sync-stats": {
+            "post": {
+                "description": "Updates or adds a new screen time record for a specific device.\nIncludes logic to prevent \"cheating\" (time from future, screen time increasing faster than real time, etc.)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "stats"
+                ],
+                "summary": "Synchronize user screen time",
+                "parameters": [
+                    {
+                        "description": "User screen time data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.UserStatsPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "database updated",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error (Future time, time travel, invalid increments)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/register": {
+            "post": {
+                "description": "Creates a new user account, hashes the password, and links the initial device with a push token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "User registration data (email, username, password, device_id, push_token)",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.UserPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User created successfully",
+                        "schema": {
+                            "type": "nil"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid JSON or validation error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error during hashing or database insert",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -241,6 +397,77 @@ const docTemplate = `{
                 },
                 "user_to_kick_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "main.UserPayload": {
+            "type": "object",
+            "required": [
+                "device_id",
+                "email",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "device_id": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 3
+                },
+                "push_notification_token": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
+        "main.UserStatsPayload": {
+            "type": "object",
+            "required": [
+                "device_id",
+                "recorded_at",
+                "screen_time"
+            ],
+            "properties": {
+                "device_id": {
+                    "type": "string"
+                },
+                "recorded_at": {
+                    "type": "string",
+                    "example": "2026-03-17T12:00:00Z"
+                },
+                "screen_time": {
+                    "type": "integer"
+                }
+            }
+        },
+        "storage.GroupStats": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "recorded_at": {
+                    "type": "string"
+                },
+                "screen_time": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         }

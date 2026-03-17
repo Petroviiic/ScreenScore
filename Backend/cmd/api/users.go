@@ -18,6 +18,17 @@ func (app *Application) GetById(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// RegisterUser godoc
+// @Summary      Register a new user
+// @Description  Creates a new user account, hashes the password, and links the initial device with a push token.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        payload  body      UserPayload  true  "User registration data (email, username, password, device_id, push_token)"
+// @Success      201      {nil}     nil          "User created successfully"
+// @Failure      400      {object}  map[string]string "Invalid JSON or validation error"
+// @Failure      500      {object}  map[string]string "Internal server error during hashing or database insert"
+// @Router       /users/register [post]
 func (app *Application) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var data UserPayload
 	if err := readJson(w, r, &data); err != nil {

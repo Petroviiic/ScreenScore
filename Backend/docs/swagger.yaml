@@ -17,6 +17,56 @@ definitions:
     - group_id
     - user_to_kick_id
     type: object
+  main.UserPayload:
+    properties:
+      device_id:
+        maxLength: 255
+        type: string
+      email:
+        maxLength: 255
+        type: string
+      password:
+        maxLength: 72
+        minLength: 3
+        type: string
+      push_notification_token:
+        type: string
+      username:
+        maxLength: 100
+        type: string
+    required:
+    - device_id
+    - email
+    - password
+    - username
+    type: object
+  main.UserStatsPayload:
+    properties:
+      device_id:
+        type: string
+      recorded_at:
+        example: "2026-03-17T12:00:00Z"
+        type: string
+      screen_time:
+        type: integer
+    required:
+    - device_id
+    - recorded_at
+    - screen_time
+    type: object
+  storage.GroupStats:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      recorded_at:
+        type: string
+      screen_time:
+        type: integer
+      username:
+        type: string
+    type: object
 host: localhost:3000
 info:
   contact: {}
@@ -107,7 +157,7 @@ paths:
       responses:
         "200":
           description: OK
-        "400":
+        "403":
           description: User with given id is not a member of the group
           schema:
             additionalProperties:
@@ -156,4 +206,110 @@ paths:
       summary: Health check
       tags:
       - utils
+  /stats/get-group-stats/{groupID}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Group id (URL parameter)
+        in: path
+        name: groupID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/storage.GroupStats'
+            type: array
+        "403":
+          description: User with given id is not a member of the group
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Retrieves screentime data for all group memebers
+      tags:
+      - stats
+  /stats/sync-stats:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Updates or adds a new screen time record for a specific device.
+        Includes logic to prevent "cheating" (time from future, screen time increasing faster than real time, etc.)
+      parameters:
+      - description: User screen time data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.UserStatsPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: database updated
+          schema:
+            type: string
+        "400":
+          description: Validation error (Future time, time travel, invalid increments)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Synchronize user screen time
+      tags:
+      - stats
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account, hashes the password, and links the
+        initial device with a push token.
+      parameters:
+      - description: User registration data (email, username, password, device_id,
+          push_token)
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.UserPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            type: nil
+        "400":
+          description: Invalid JSON or validation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error during hashing or database insert
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - auth
 swagger: "2.0"

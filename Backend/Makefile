@@ -7,7 +7,7 @@ test:
 
 .PHONY: docs
 docs:
-	@swag init --parseInternal --dir cmd/api/ --output ./docs
+	@swag init --parseInternal --dir cmd/api,internal/storage --output ./docs
 
 
 .PHONY: migrate-create
