@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_screen_time_user_device_date;
