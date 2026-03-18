@@ -74,36 +74,42 @@ func (s *StatsStorage) AddNewRecord(ctx context.Context, userId int64, screenTim
 	return nil
 }
 
-// TODO - return sum of screentimes for each device
-func (s *StatsStorage) GetGroupStats(ctx context.Context, groupId string) ([]*GroupStats, error) {
-	query := `	WITH group_users AS (
-					SELECT user_id FROM group_members WHERE group_id = $1
-				),
-				ranked_stats AS (
-					SELECT user_id, screen_time, recorded_at,
-						ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY recorded_at DESC, screen_time DESC) as rn
-					FROM screen_time_logs
-					WHERE user_id IN (SELECT user_id FROM group_users)
-					--AND recorded_at::DATE = CURRENT_DATE 
-				)
-				SELECT 
-					gu.user_id, 
-					u.email, 
-					u.username, 
-					rs.screen_time, 
-					rs.recorded_at 
-				FROM group_users gu
-				JOIN users u ON u.id = gu.user_id
-				JOIN ranked_stats rs ON rs.user_id = gu.user_id AND rs.rn = 1 
-				ORDER BY rs.screen_time DESC; `
-
+func (s *StatsStorage) GetGroupStats(ctx context.Context, groupId string, desiredDate time.Time) ([]*GroupStats, error) {
+	query := `
+			WITH group_users AS (
+				SELECT user_id FROM group_members WHERE group_id = $1
+			),
+			ranked_stats AS (
+				SELECT user_id, screen_time, recorded_at,
+					ROW_NUMBER() OVER (PARTITION BY device_id,user_id ORDER BY recorded_at DESC, screen_time DESC) as rn
+				FROM screen_time_logs
+				WHERE user_id IN (SELECT user_id FROM group_users)
+				AND recorded_at::DATE BETWEEN $2 AND $3
+			)
+			SELECT 
+				gu.user_id, 
+				u.email, 
+				u.username, 
+				COALESCE(SUM(rs.screen_time), 0) as total_screen_time,
+				MAX(rs.recorded_at) as last_recorded_at
+			FROM group_users gu
+			JOIN users u ON u.id = gu.user_id
+			JOIN ranked_stats rs ON rs.user_id = gu.user_id AND rs.rn = 1 
+			GROUP BY gu.user_id, u.email, u.username
+			ORDER BY total_screen_time DESC; 
+	`
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+
+	startTime := desiredDate.UTC()
+	endTime := startTime.AddDate(0, 0, 1)
 
 	rows, err := s.db.QueryContext(
 		ctx,
 		query,
 		groupId,
+		startTime,
+		endTime,
 	)
 
 	if err != nil {
