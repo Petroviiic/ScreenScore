@@ -21,6 +21,6 @@ func (s *StatsMockStorage) GetUsersLast(context.Context, int64, string) (*UsageR
 func (s *StatsMockStorage) AddNewRecord(context.Context, int64, int32, string, time.Time) error {
 	return nil
 }
-func (s *StatsMockStorage) GetGroupStats(context.Context, string) ([]*GroupStats, error) {
+func (s *StatsMockStorage) GetGroupStats(context.Context, string, time.Time) ([]*GroupStats, error) {
 	return nil, nil
 }

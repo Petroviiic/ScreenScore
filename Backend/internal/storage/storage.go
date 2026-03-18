@@ -3,22 +3,25 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 )
 
-const (
-	ERROR_NO_ROWS_AFFECTED = "no rows affected"
+var (
+	ERROR_NO_ROWS_AFFECTED    = errors.New("no rows affected")
+	ERROR_DUPLICATE_KEY_VALUE = errors.New("record already exists")
 )
 
 type Storage struct {
 	UserStorage interface {
 		GetById(context.Context, int64) (*User, error)
+		GetByUsername(ctx context.Context, username string) (*User, error)
 		RegisterUser(ctx context.Context, user *User) (int64, error)
 	}
 	StatsStorage interface {
 		GetUsersLast(context.Context, int64, string) (*UsageRecord, error)
 		AddNewRecord(context.Context, int64, int32, string, time.Time) error
-		GetGroupStats(context.Context, string) ([]*GroupStats, error)
+		GetGroupStats(context.Context, string, time.Time) ([]*GroupStats, error)
 	}
 	GroupStorage interface {
 		CheckIfMember(context.Context, int64, string) bool

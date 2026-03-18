@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -41,6 +42,31 @@ func (p *password) ValidatePassword(plain string) bool {
 		return false
 	}
 	return true
+}
+func (u *UserStorage) GetByUsername(ctx context.Context, username string) (*User, error) {
+	query := `	SELECT id, email, username, password, created_at FROM users 
+				WHERE username = $1`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	user := &User{}
+	err := u.db.QueryRowContext(
+		ctx,
+		query,
+		username,
+	).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Username,
+		&user.Password,
+		&user.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (u *UserStorage) GetById(ctx context.Context, userId int64) (*User, error) {
@@ -89,7 +115,12 @@ func (u *UserStorage) RegisterUser(ctx context.Context, user *User) (int64, erro
 	)
 
 	if err != nil {
-		return 0, err
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Code == "23505" {
+				return -1, ERROR_DUPLICATE_KEY_VALUE
+			}
+		}
+		return -1, err
 	}
 	return userId, nil
 }
