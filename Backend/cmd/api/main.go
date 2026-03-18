@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"time"
 
+	"github.com/Petroviiic/ScreenScore/internal/auth"
 	"github.com/Petroviiic/ScreenScore/internal/db"
 	"github.com/Petroviiic/ScreenScore/internal/env"
 	"github.com/Petroviiic/ScreenScore/internal/storage"
@@ -14,6 +16,10 @@ import (
 // @description API powering ScreenScore backend system.
 // @host localhost:3000
 // @BasePath /v1
+// @securityDefinitions.apikey BearerAuth
+// @in                         header
+// @name                       Authorization
+// @description                Type "Bearer <your-jwt-token>"
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -28,6 +34,11 @@ func main() {
 			dbAddr:       env.GetString("DB_ADDR", "postgresql://user:user123@localhost:5432/screenscore?sslmode=disable"),
 		},
 		maxGroupNameLen: 15,
+		auth: authConfig{
+			secret:  env.GetString("AUTH_TOKEN_SECRET", "example"),
+			expDate: time.Hour * 24 * 3,
+			iss:     env.GetString("AUTH_TOKEN_ISSUER", "admin"),
+		},
 	}
 
 	db, err := db.NewDb(cfg.dbConfig.dbAddr, cfg.dbConfig.maxIdleConns, cfg.dbConfig.maxOpenConns, cfg.dbConfig.maxIdleTime)
@@ -38,10 +49,12 @@ func main() {
 
 	storage := storage.NewStorage(db)
 
+	authenticator := auth.NewJWTAuthenticator(cfg.auth.secret, cfg.auth.iss, cfg.auth.iss)
 	app := &Application{
-		config:  cfg,
-		db:      db,
-		storage: storage,
+		config:        cfg,
+		db:            db,
+		storage:       storage,
+		authenticator: authenticator,
 	}
 
 	router := app.mount()

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	_ "github.com/Petroviiic/ScreenScore/docs"
+	"github.com/Petroviiic/ScreenScore/internal/auth"
 	"github.com/Petroviiic/ScreenScore/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -15,17 +16,23 @@ import (
 )
 
 type Application struct {
-	config  Config
-	db      *sql.DB
-	storage *storage.Storage
+	config        Config
+	db            *sql.DB
+	storage       *storage.Storage
+	authenticator auth.Authenticator
 }
 
 type Config struct {
 	addr            string
 	dbConfig        DBConfig
 	maxGroupNameLen int
+	auth            authConfig
 }
-
+type authConfig struct {
+	secret  string
+	expDate time.Duration
+	iss     string
+}
 type DBConfig struct {
 	maxIdleConns int
 	maxOpenConns int
@@ -63,14 +70,18 @@ func (app *Application) mount() http.Handler {
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/get-by-id", app.GetById)
 			r.Post("/register", app.RegisterUser)
+			r.Post("/login", app.Login)
 		})
 
 		r.Route("/stats", func(r chi.Router) {
+			r.Use(app.TokenAuthMiddleware)
+
 			r.Post("/sync-stats", app.SyncStats)
-			r.Get("/get-group-stats/{groupID}", app.GetGroupStats)
+			r.Post("/get-group-stats", app.GetGroupStats)
 		})
 
 		r.Route("/groups", func(r chi.Router) {
+			r.Use(app.TokenAuthMiddleware)
 			r.Post("/create/{groupName}", app.CreateGroup)
 			r.Post("/join/{inviteCode}", app.JoinGroup)
 			r.Post("/leave/{groupId}", app.LeaveGroup)
