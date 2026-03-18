@@ -23,6 +23,7 @@ type GroupData struct {
 // @Summary      Create new group
 // @Description  Creates a new group and returns invite code
 // @Tags         groups
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        groupName  path      string  true  "Group name (URL parameter)"
@@ -61,6 +62,7 @@ func (app *Application) CreateGroup(w http.ResponseWriter, r *http.Request) {
 // @Summary      Join group
 // @Description  Joins a group and returns group id
 // @Tags         groups
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        inviteCode  path      string  true  "Invite code (URL parameter)"
@@ -69,7 +71,7 @@ func (app *Application) CreateGroup(w http.ResponseWriter, r *http.Request) {
 // @Failure      500        {object}  map[string]string "Internal server error"
 // @Router       /groups/join/{inviteCode} [post]
 func (app *Application) JoinGroup(w http.ResponseWriter, r *http.Request) {
-	userId := int64(1) //CHANGE DOCS, add auth
+	userId := GetUserFromContext(r)
 
 	inviteCode := chi.URLParam(r, "inviteCode")
 
@@ -93,6 +95,7 @@ func (app *Application) JoinGroup(w http.ResponseWriter, r *http.Request) {
 // @Summary      Leave group
 // @Description  Leaves a group
 // @Tags         groups
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        groupId  path      string  true  "Group id (URL parameter)"
@@ -100,7 +103,7 @@ func (app *Application) JoinGroup(w http.ResponseWriter, r *http.Request) {
 // @Failure      500        {object}  map[string]string "Internal server error"
 // @Router       /groups/leave	[post]
 func (app *Application) LeaveGroup(w http.ResponseWriter, r *http.Request) {
-	userId := int64(1) //TODO add auth
+	userId := GetUserFromContext(r)
 
 	groupId := chi.URLParam(r, "groupId")
 
@@ -125,6 +128,7 @@ type KickUserPayload struct {
 // @Summary      Kick user
 // @Description  Anyone can kick another group member
 // @Tags         groups
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        payload  body      KickUserPayload  true  "Payload with user to kick and group id"

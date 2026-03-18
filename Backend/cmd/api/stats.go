@@ -8,40 +8,46 @@ import (
 	"time"
 
 	"github.com/Petroviiic/ScreenScore/internal/storage"
-	"github.com/go-chi/chi/v5"
 )
 
 var _ = storage.GroupStats{}
 
-type UserStatsPayload struct {
-	DeviceID   string `json:"device_id" validate:"required"`
-	RecordedAt string `json:"recorded_at" validate:"required" example:"2026-03-17T12:00:00Z"`
-	ScreenTime int32  `json:"screen_time" validate:"required"`
+type GroupStatsPayload struct {
+	GroupID     string `json:"group_id" validate:"required"`
+	DesiredDate string `json:"desired_date" validate:"required" example:"2026-03-17"`
 }
 
 // GetGroupStats godoc
 // @Summary      Retrieves screentime data for all group memebers
 // @Tags         stats
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Param        groupID  path      string  true  "Group id (URL parameter)"
+// @Param        payload  body      GroupStatsPayload  true  "Group stats payload"
 // @Success      200		{array}   storage.GroupStats
 // @Failure      403        {object}  map[string]string "User with given id is not a member of the group"
+// @Failure      400        {object}  map[string]string "Payload malformed"
 // @Failure      500        {object}  map[string]string "Internal server error"
-// @Router       /stats/get-group-stats/{groupID}	[get]
+// @Router       /stats/get-group-stats	[post]
 func (app *Application) GetGroupStats(w http.ResponseWriter, r *http.Request) {
-	//TODO - userId, add auth
-	userId := int64(2)
+	userId := GetUserFromContext(r)
 
-	groupId := chi.URLParam(r, "groupID")
+	var payload GroupStatsPayload
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	ctx := r.Context()
-	if !app.storage.GroupStorage.CheckIfMember(ctx, userId, groupId) {
-		log.Printf("user with id: %d is not a member of group with id: %s", userId, groupId)
+	if !app.storage.GroupStorage.CheckIfMember(ctx, userId, payload.GroupID) {
+		log.Printf("user with id: %d is not a member of group with id: %s", userId, payload.GroupID)
 		app.forbiddenResponse(w, r)
 		return
 	}
 
-	stats, err := app.storage.StatsStorage.GetGroupStats(ctx, groupId)
+	desiredDate, _ := time.Parse(time.DateOnly, payload.DesiredDate)
+
+	stats, err := app.storage.StatsStorage.GetGroupStats(ctx, payload.GroupID, desiredDate)
 	if err != nil {
 		app.internalServerErrorJson(w, r, err)
 		return
@@ -53,11 +59,18 @@ func (app *Application) GetGroupStats(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type UserStatsPayload struct {
+	DeviceID   string `json:"device_id" validate:"required"`
+	RecordedAt string `json:"recorded_at" validate:"required" example:"2026-03-17T12:00:00Z"`
+	ScreenTime int32  `json:"screen_time" validate:"required"`
+}
+
 // SyncStats godoc
 // @Summary      Synchronize user screen time
 // @Description  Updates or adds a new screen time record for a specific device.
 // @Description  Includes logic to prevent "cheating" (time from future, screen time increasing faster than real time, etc.)
 // @Tags         stats
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        payload  body      UserStatsPayload  true  "User screen time data"
@@ -66,7 +79,7 @@ func (app *Application) GetGroupStats(w http.ResponseWriter, r *http.Request) {
 // @Failure      500      {object}  map[string]string "Internal server error"
 // @Router       /stats/sync-stats [post]
 func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
-	userId := 1 //TODO, add auth docs
+	userId := GetUserFromContext(r)
 	var stats UserStatsPayload
 
 	if err := readJson(w, r, &stats); err != nil {
