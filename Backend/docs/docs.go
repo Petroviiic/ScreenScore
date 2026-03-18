@@ -17,6 +17,11 @@ const docTemplate = `{
     "paths": {
         "/groups/create/{groupName}": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Creates a new group and returns invite code",
                 "consumes": [
                     "application/json"
@@ -67,6 +72,11 @@ const docTemplate = `{
         },
         "/groups/join/{inviteCode}": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Joins a group and returns group id",
                 "consumes": [
                     "application/json"
@@ -117,6 +127,11 @@ const docTemplate = `{
         },
         "/groups/kick": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Anyone can kick another group member",
                 "consumes": [
                     "application/json"
@@ -166,6 +181,11 @@ const docTemplate = `{
         },
         "/groups/leave": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Leaves a group",
                 "consumes": [
                     "application/json"
@@ -216,8 +236,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/stats/get-group-stats/{groupID}": {
-            "get": {
+        "/stats/get-group-stats": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -230,11 +255,13 @@ const docTemplate = `{
                 "summary": "Retrieves screentime data for all group memebers",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Group id (URL parameter)",
-                        "name": "groupID",
-                        "in": "path",
-                        "required": true
+                        "description": "Group stats payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.GroupStatsPayload"
+                        }
                     }
                 ],
                 "responses": {
@@ -244,6 +271,15 @@ const docTemplate = `{
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/storage.GroupStats"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Payload malformed",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
                             }
                         }
                     },
@@ -270,6 +306,11 @@ const docTemplate = `{
         },
         "/stats/sync-stats": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Updates or adds a new screen time record for a specific device.\nIncludes logic to prevent \"cheating\" (time from future, screen time increasing faster than real time, etc.)",
                 "consumes": [
                     "application/json"
@@ -301,6 +342,58 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Validation error (Future time, time travel, invalid increments)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/login": {
+            "post": {
+                "description": "Authenticates a user, updates their device token, and returns a JWT.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "User login",
+                "parameters": [
+                    {
+                        "description": "Login credentials (username, password, device_id, push_token)",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.UserPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "JWT Token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -352,7 +445,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid JSON or validation error",
+                        "description": "User already exists",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -385,6 +478,22 @@ const docTemplate = `{
                 }
             }
         },
+        "main.GroupStatsPayload": {
+            "type": "object",
+            "required": [
+                "desired_date",
+                "group_id"
+            ],
+            "properties": {
+                "desired_date": {
+                    "type": "string",
+                    "example": "2026-03-17"
+                },
+                "group_id": {
+                    "type": "string"
+                }
+            }
+        },
         "main.KickUserPayload": {
             "type": "object",
             "required": [
@@ -404,7 +513,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "device_id",
-                "email",
                 "password",
                 "username"
             ],
@@ -470,6 +578,14 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer \u003cyour-jwt-token\u003e\"",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

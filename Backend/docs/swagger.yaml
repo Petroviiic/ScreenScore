@@ -7,6 +7,17 @@ definitions:
       name:
         type: string
     type: object
+  main.GroupStatsPayload:
+    properties:
+      desired_date:
+        example: "2026-03-17"
+        type: string
+      group_id:
+        type: string
+    required:
+    - desired_date
+    - group_id
+    type: object
   main.KickUserPayload:
     properties:
       group_id:
@@ -36,7 +47,6 @@ definitions:
         type: string
     required:
     - device_id
-    - email
     - password
     - username
     type: object
@@ -104,6 +114,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Create new group
       tags:
       - groups
@@ -137,6 +149,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Join group
       tags:
       - groups
@@ -169,6 +183,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Kick user
       tags:
       - groups
@@ -194,6 +210,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Leave group
       tags:
       - groups
@@ -206,16 +224,17 @@ paths:
       summary: Health check
       tags:
       - utils
-  /stats/get-group-stats/{groupID}:
-    get:
+  /stats/get-group-stats:
+    post:
       consumes:
       - application/json
       parameters:
-      - description: Group id (URL parameter)
-        in: path
-        name: groupID
+      - description: Group stats payload
+        in: body
+        name: payload
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/main.GroupStatsPayload'
       produces:
       - application/json
       responses:
@@ -225,6 +244,12 @@ paths:
             items:
               $ref: '#/definitions/storage.GroupStats'
             type: array
+        "400":
+          description: Payload malformed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "403":
           description: User with given id is not a member of the group
           schema:
@@ -237,6 +262,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Retrieves screentime data for all group memebers
       tags:
       - stats
@@ -273,9 +300,46 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Synchronize user screen time
       tags:
       - stats
+  /users/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user, updates their device token, and returns a
+        JWT.
+      parameters:
+      - description: Login credentials (username, password, device_id, push_token)
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.UserPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT Token
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User login
+      tags:
+      - auth
   /users/register:
     post:
       consumes:
@@ -298,7 +362,7 @@ paths:
           schema:
             type: nil
         "400":
-          description: Invalid JSON or validation error
+          description: User already exists
           schema:
             additionalProperties:
               type: string
@@ -312,4 +376,10 @@ paths:
       summary: Register a new user
       tags:
       - auth
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer <your-jwt-token>"
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"
