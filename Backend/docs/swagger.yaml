@@ -188,7 +188,7 @@ paths:
       summary: Kick user
       tags:
       - groups
-  /groups/leave:
+  /groups/leave/{groupId}:
     post:
       consumes:
       - application/json

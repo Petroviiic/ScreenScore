@@ -179,7 +179,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/groups/leave": {
+        "/groups/leave/{groupId}": {
             "post": {
                 "security": [
                     {
