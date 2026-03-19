@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type GroupStorage struct {
@@ -80,6 +82,11 @@ func (g *GroupStorage) JoinGroup(ctx context.Context, userId int64, inviteCode s
 		&groupId,
 	)
 	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Code == "23505" {
+				return "", ERROR_DUPLICATE_KEY_VALUE
+			}
+		}
 		return "", err
 	}
 	return groupId, err

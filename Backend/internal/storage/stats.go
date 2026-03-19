@@ -26,7 +26,7 @@ type GroupStats struct {
 }
 
 func (s *StatsStorage) GetUsersLast(ctx context.Context, userId int64, deviceID string) (*UsageRecord, error) {
-	query := `	SELECT screen_time, device_id recorded_at, created_at FROM screen_time_logs 
+	query := `	SELECT screen_time, device_id, recorded_at, created_at FROM screen_time_logs 
 				WHERE user_id = $1 AND device_id = $2
 				ORDER BY recorded_at DESC LIMIT 1;`
 

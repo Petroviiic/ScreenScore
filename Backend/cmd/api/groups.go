@@ -1,11 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"regexp"
 
+	"github.com/Petroviiic/ScreenScore/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -32,8 +34,6 @@ type GroupData struct {
 // @Failure      500        {object}  map[string]string "Internal server error"
 // @Router       /groups/create/{groupName} [post]
 func (app *Application) CreateGroup(w http.ResponseWriter, r *http.Request) {
-	//TODO add auth to docs
-
 	groupName := chi.URLParam(r, "groupName")
 
 	if !isValidString(groupName, app.config.maxGroupNameLen) {
@@ -82,6 +82,10 @@ func (app *Application) JoinGroup(w http.ResponseWriter, r *http.Request) {
 	groupId, err := app.storage.GroupStorage.JoinGroup(r.Context(), userId, inviteCode)
 
 	if err != nil {
+		if errors.Is(err, storage.ERROR_DUPLICATE_KEY_VALUE) {
+			app.badRequestResponse(w, r, err)
+			return
+		}
 		app.internalServerErrorJson(w, r, err)
 		return
 	}
@@ -101,7 +105,7 @@ func (app *Application) JoinGroup(w http.ResponseWriter, r *http.Request) {
 // @Param        groupId  path      string  true  "Group id (URL parameter)"
 // @Success      200
 // @Failure      500        {object}  map[string]string "Internal server error"
-// @Router       /groups/leave	[post]
+// @Router       /groups/leave/{groupId}	[post]
 func (app *Application) LeaveGroup(w http.ResponseWriter, r *http.Request) {
 	userId := GetUserFromContext(r)
 
@@ -137,8 +141,6 @@ type KickUserPayload struct {
 // @Failure      500        {object}  map[string]string "Internal server error"
 // @Router       /groups/kick	[post]
 func (app *Application) KickUser(w http.ResponseWriter, r *http.Request) {
-	//TODO add auth to docs
-
 	var payload KickUserPayload
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequestResponse(w, r, err)

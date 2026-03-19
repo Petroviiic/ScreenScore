@@ -96,7 +96,7 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	currentRecordTime = currentRecordTime.UTC()
-
+	log.Println(currentRecordTime, time.Now().UTC().Add(10*time.Minute))
 	if currentRecordTime.After(time.Now().UTC().Add(10 * time.Minute)) {
 		app.badRequestResponse(w, r, fmt.Errorf("new record is sent from the future"))
 		return

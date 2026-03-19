@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 
 type UserPayload struct {
 	Username              string `json:"username" validate:"required,max=100"`
-	Email                 string `json:"email" validate:"email,max=255"`
+	Email                 string `json:"email" validate:"omitempty,email,max=255"`
 	Password              string `json:"password" validate:"required,min=3,max=72"`
 	DeviceID              string `json:"device_id" validate:"required,max=255"`
 	PushNotificationToken string `json:"push_notification_token"`
@@ -39,7 +40,11 @@ func (app *Application) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		app.badRequestResponse(w, r, err)
 		return
 	}
-	if err := Validate.Struct(data); err != nil || data.Email == "" {
+	if data.Email == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("email is required for registration"))
+		return
+	}
+	if err := Validate.Struct(data); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -96,12 +101,12 @@ func (app *Application) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user, err := app.storage.UserStorage.GetByUsername(ctx, data.Username)
 	if err != nil {
-		app.badRequestResponse(w, r, err)
+		app.unauthorizedBasicErrorResponse(w, r, err)
 		return
 	}
 
 	if !user.Password.ValidatePassword(data.Password) {
-		app.unauthorizedErrorResponse(w, r, err)
+		app.unauthorizedBasicErrorResponse(w, r, fmt.Errorf("unauthorized"))
 		return
 	}
 	if err := app.storage.DeviceStorage.Update(ctx, user.ID, data.DeviceID, data.PushNotificationToken); err != nil {

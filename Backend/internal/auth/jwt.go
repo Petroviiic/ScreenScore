@@ -38,6 +38,6 @@ func (a *JWTAuthenticator) ValidateToken(plainToken string) (*jwt.Token, error) 
 		jwt.WithExpirationRequired(),
 		jwt.WithAudience(a.aud),
 		jwt.WithIssuer(a.iss),
-		jwt.WithValidMethods([]string{jwt.SigningMethodES256.Name}),
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}),
 	)
 }

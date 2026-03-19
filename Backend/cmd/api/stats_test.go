@@ -107,6 +107,7 @@ func TestValidateScreenTime(t *testing.T) {
 			}
 			jsonBody := fmt.Sprintf(`{"screen_time": %d, "recorded_at": "%s", "device_id":"%s"}`, tc.currentScreenTime, tc.currentTime, tc.deviceId)
 			req, err := http.NewRequest(http.MethodPost, "/v1/stats/sync-stats", strings.NewReader(jsonBody))
+			req.Header.Add("Authorization", "Bearer 123token")
 			if err != nil {
 				t.Fatal(err)
 			}

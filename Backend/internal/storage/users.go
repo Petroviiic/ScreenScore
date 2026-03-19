@@ -59,7 +59,7 @@ func (u *UserStorage) GetByUsername(ctx context.Context, username string) (*User
 		&user.ID,
 		&user.Email,
 		&user.Username,
-		&user.Password,
+		&user.Password.Hash,
 		&user.CreatedAt,
 	)
 	if err != nil {
@@ -85,7 +85,7 @@ func (u *UserStorage) GetById(ctx context.Context, userId int64) (*User, error) 
 		&user.ID,
 		&user.Email,
 		&user.Username,
-		&user.Password,
+		&user.Password.Hash,
 		&user.CreatedAt,
 	)
 	if err != nil {

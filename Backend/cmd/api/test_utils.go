@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Petroviiic/ScreenScore/internal/auth"
 	"github.com/Petroviiic/ScreenScore/internal/storage"
 )
 
@@ -12,9 +13,10 @@ func newTestApplication(t *testing.T) *Application {
 	t.Helper()
 
 	storage := storage.NewMockStorage()
-
+	auth := auth.NewMockJWTAuthenticator()
 	return &Application{
-		storage: storage,
+		storage:       storage,
+		authenticator: auth,
 	}
 }
 
