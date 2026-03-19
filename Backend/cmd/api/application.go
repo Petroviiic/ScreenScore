@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/Petroviiic/ScreenScore/docs"
 	"github.com/Petroviiic/ScreenScore/internal/auth"
+	"github.com/Petroviiic/ScreenScore/internal/ratelimiter"
 	"github.com/Petroviiic/ScreenScore/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -20,6 +21,11 @@ type Application struct {
 	db            *sql.DB
 	storage       *storage.Storage
 	authenticator auth.Authenticator
+	rateLimiters  rateLimiters
+}
+type rateLimiters struct {
+	apiFixedWindow  *ratelimiter.FixedWindowRateLimiter
+	authFixedWindow *ratelimiter.FixedWindowRateLimiter
 }
 
 type Config struct {
@@ -27,7 +33,22 @@ type Config struct {
 	dbConfig        DBConfig
 	maxGroupNameLen int
 	auth            authConfig
+	ratelimiter     rateLimiterConfig
 }
+
+type rateLimiterConfig struct {
+	authFixedWindow fixedWindowLimiterConfig
+	apiFixedWindow  fixedWindowLimiterConfig
+	slidingWindow   slidingWindowLimiterConfig
+}
+type fixedWindowLimiterConfig struct {
+	limit  int
+	window time.Duration
+}
+
+type slidingWindowLimiterConfig struct {
+}
+
 type authConfig struct {
 	secret  string
 	expDate time.Duration
@@ -63,12 +84,12 @@ func (app *Application) mount() http.Handler {
 		httpSwagger.URL("/swagger/doc.json"),
 	))
 	r.Route("/v1", func(r chi.Router) {
-		r.Route("/test", func(r chi.Router) {
-			r.Get("/health", app.GetHealth)
-		})
+		r.Get("/health", app.GetHealth)
 
 		r.Route("/users", func(r chi.Router) {
-			r.Post("/get-by-id", app.GetById)
+			r.Use(app.fixedWindowLimiterMiddleware(app.rateLimiters.authFixedWindow, false))
+
+			//r.Post("/get-by-id", app.GetById)
 			r.Post("/register", app.RegisterUser)
 			r.Post("/login", app.Login)
 		})
@@ -82,6 +103,7 @@ func (app *Application) mount() http.Handler {
 
 		r.Route("/groups", func(r chi.Router) {
 			r.Use(app.TokenAuthMiddleware)
+			r.Use(app.fixedWindowLimiterMiddleware(app.rateLimiters.apiFixedWindow, true))
 			r.Post("/create/{groupName}", app.CreateGroup)
 			r.Post("/join/{inviteCode}", app.JoinGroup)
 			r.Post("/leave/{groupId}", app.LeaveGroup)

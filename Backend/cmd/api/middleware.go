@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Petroviiic/ScreenScore/internal/ratelimiter"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -56,4 +57,26 @@ func GetUserFromContext(r *http.Request) int64 {
 		return -1
 	}
 	return userId
+}
+
+func (app *Application) fixedWindowLimiterMiddleware(limiter *ratelimiter.FixedWindowRateLimiter, useUserID bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var key string
+			if useUserID {
+				id := GetUserFromContext(r)
+				key = fmt.Sprintf("user:%d", id)
+			} else {
+				key = fmt.Sprintf("ip:%s", r.RemoteAddr)
+			}
+
+			if allow, retryAfter := limiter.Allow(key); !allow {
+				app.rateLimitExceededResponse(w, r, retryAfter.String())
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+
+	}
 }

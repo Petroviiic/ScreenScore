@@ -7,6 +7,7 @@ import (
 	"github.com/Petroviiic/ScreenScore/internal/auth"
 	"github.com/Petroviiic/ScreenScore/internal/db"
 	"github.com/Petroviiic/ScreenScore/internal/env"
+	"github.com/Petroviiic/ScreenScore/internal/ratelimiter"
 	"github.com/Petroviiic/ScreenScore/internal/storage"
 	"github.com/joho/godotenv"
 )
@@ -39,6 +40,17 @@ func main() {
 			expDate: time.Hour * 24 * 3,
 			iss:     env.GetString("AUTH_TOKEN_ISSUER", "admin"),
 		},
+		ratelimiter: rateLimiterConfig{
+			authFixedWindow: fixedWindowLimiterConfig{
+				limit:  10,
+				window: 3 * time.Minute,
+			},
+			apiFixedWindow: fixedWindowLimiterConfig{
+				limit:  60,
+				window: 1 * time.Minute,
+			},
+			slidingWindow: slidingWindowLimiterConfig{},
+		},
 	}
 
 	db, err := db.NewDb(cfg.dbConfig.dbAddr, cfg.dbConfig.maxIdleConns, cfg.dbConfig.maxOpenConns, cfg.dbConfig.maxIdleTime)
@@ -50,11 +62,22 @@ func main() {
 	storage := storage.NewStorage(db)
 
 	authenticator := auth.NewJWTAuthenticator(cfg.auth.secret, cfg.auth.iss, cfg.auth.iss)
+
+	authFixedWindowLimiter := ratelimiter.NewFixedWindowLimiter(cfg.ratelimiter.authFixedWindow.limit, cfg.ratelimiter.authFixedWindow.window)
+	authFixedWindowLimiter.Cleanup()
+
+	apiFixedWindowLimiter := ratelimiter.NewFixedWindowLimiter(cfg.ratelimiter.apiFixedWindow.limit, cfg.ratelimiter.apiFixedWindow.window)
+	apiFixedWindowLimiter.Cleanup()
+
 	app := &Application{
 		config:        cfg,
 		db:            db,
 		storage:       storage,
 		authenticator: authenticator,
+		rateLimiters: rateLimiters{
+			authFixedWindow: authFixedWindowLimiter,
+			apiFixedWindow:  apiFixedWindowLimiter,
+		},
 	}
 
 	router := app.mount()
