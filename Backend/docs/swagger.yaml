@@ -28,6 +28,19 @@ definitions:
     - group_id
     - user_to_kick_id
     type: object
+  main.Notification:
+    properties:
+      body:
+        type: string
+      title:
+        type: string
+      user_id:
+        type: integer
+    required:
+    - body
+    - title
+    - user_id
+    type: object
   main.UserPayload:
     properties:
       device_id:
@@ -224,6 +237,34 @@ paths:
       summary: Health check
       tags:
       - utils
+  /notifications/send:
+    post:
+      consumes:
+      - application/json
+      description: Updates or adds a new screen time record for a specific device.
+      parameters:
+      - description: Notification data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.Notification'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Sent
+          schema:
+            type: string
+        "400":
+          description: Bad request payload
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Sends notification to a user
+      tags:
+      - notifications
   /stats/get-group-stats:
     post:
       consumes:

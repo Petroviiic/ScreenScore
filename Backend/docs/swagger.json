@@ -230,6 +230,49 @@
                 }
             }
         },
+        "/notifications/send": {
+            "post": {
+                "description": "Updates or adds a new screen time record for a specific device.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Sends notification to a user",
+                "parameters": [
+                    {
+                        "description": "Notification data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.Notification"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Sent",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request payload",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/stats/get-group-stats": {
             "post": {
                 "security": [
@@ -499,6 +542,25 @@
                     "type": "string"
                 },
                 "user_to_kick_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "main.Notification": {
+            "type": "object",
+            "required": [
+                "body",
+                "title",
+                "user_id"
+            ],
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "integer"
                 }
             }
