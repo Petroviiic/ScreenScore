@@ -32,6 +32,7 @@ type Storage struct {
 	}
 	DeviceStorage interface {
 		Update(ctx context.Context, userId int64, deviceId string, pushToken string) error
+		GetFCMTokens(context.Context, int64) ([]string, error)
 	}
 }
 
