@@ -59,13 +59,17 @@ func GetUserFromContext(r *http.Request) int64 {
 	return userId
 }
 
-func (app *Application) fixedWindowLimiterMiddleware(limiter *ratelimiter.FixedWindowRateLimiter, useUserID bool) func(http.Handler) http.Handler {
+func (app *Application) RatelimiterMiddleware(limiter ratelimiter.Limiter, useUserID bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var key string
 			if useUserID {
 				id := GetUserFromContext(r)
-				key = fmt.Sprintf("user:%d", id)
+				if id == 0 {
+					app.unauthorizedErrorResponse(w, r, fmt.Errorf("user not found"))
+					return
+				}
+				key = fmt.Sprintf("%d", id)
 			} else {
 				key = fmt.Sprintf("ip:%s", r.RemoteAddr)
 			}
