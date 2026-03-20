@@ -3,7 +3,7 @@ package ratelimiter
 import "time"
 
 type Limiter interface {
-	Allow(ip string) (bool, time.Duration)
+	Allow(ip any) (bool, time.Duration)
 }
 
 type Config struct {

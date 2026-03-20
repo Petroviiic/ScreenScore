@@ -24,7 +24,12 @@ func NewFixedWindowLimiter(limit int, window time.Duration) *FixedWindowRateLimi
 	}
 }
 
-func (rl *FixedWindowRateLimiter) Allow(ip string) (bool, time.Duration) {
+func (rl *FixedWindowRateLimiter) Allow(v any) (bool, time.Duration) {
+	ip, ok := v.(string)
+	if !ok {
+		return false, 0
+	}
+
 	rl.RLock()
 	defer rl.RUnlock()
 
@@ -46,7 +51,7 @@ func (rl *FixedWindowRateLimiter) Allow(ip string) (bool, time.Duration) {
 }
 
 func (rl *FixedWindowRateLimiter) Cleanup() {
-	ticker := time.NewTicker(rl.window) // Čisti na svakih npr. 15 min
+	ticker := time.NewTicker(rl.window)
 	go func() {
 		for range ticker.C {
 			rl.Lock()
