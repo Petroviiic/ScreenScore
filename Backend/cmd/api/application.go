@@ -26,6 +26,7 @@ type Application struct {
 type rateLimiters struct {
 	apiFixedWindow  *ratelimiter.FixedWindowRateLimiter
 	authFixedWindow *ratelimiter.FixedWindowRateLimiter
+	tokenBucket     *ratelimiter.TokenBucketRatelimiter
 }
 
 type Config struct {
@@ -40,6 +41,11 @@ type rateLimiterConfig struct {
 	authFixedWindow fixedWindowLimiterConfig
 	apiFixedWindow  fixedWindowLimiterConfig
 	slidingWindow   slidingWindowLimiterConfig
+	tokenBucket     tokenBucketLimiterConfig
+}
+type tokenBucketLimiterConfig struct {
+	limit           float64
+	tokensPerMinute float64
 }
 type fixedWindowLimiterConfig struct {
 	limit  int
@@ -87,7 +93,7 @@ func (app *Application) mount() http.Handler {
 		r.Get("/health", app.GetHealth)
 
 		r.Route("/users", func(r chi.Router) {
-			r.Use(app.fixedWindowLimiterMiddleware(app.rateLimiters.authFixedWindow, false))
+			r.Use(app.RatelimiterMiddleware(app.rateLimiters.authFixedWindow, false))
 
 			//r.Post("/get-by-id", app.GetById)
 			r.Post("/register", app.RegisterUser)
@@ -96,14 +102,20 @@ func (app *Application) mount() http.Handler {
 
 		r.Route("/stats", func(r chi.Router) {
 			r.Use(app.TokenAuthMiddleware)
-
-			r.Post("/sync-stats", app.SyncStats)
-			r.Post("/get-group-stats", app.GetGroupStats)
+			r.Group(func(r chi.Router) {
+				r.Use(app.RatelimiterMiddleware(app.rateLimiters.tokenBucket, true))
+				r.Post("/sync-stats", app.SyncStats)
+			})
+			r.Group(func(r chi.Router) {
+				r.Use(app.RatelimiterMiddleware(app.rateLimiters.apiFixedWindow, true))
+				r.Post("/get-group-stats", app.GetGroupStats)
+			})
 		})
 
 		r.Route("/groups", func(r chi.Router) {
 			r.Use(app.TokenAuthMiddleware)
-			r.Use(app.fixedWindowLimiterMiddleware(app.rateLimiters.apiFixedWindow, true))
+			r.Use(app.RatelimiterMiddleware(app.rateLimiters.apiFixedWindow, true))
+
 			r.Post("/create/{groupName}", app.CreateGroup)
 			r.Post("/join/{inviteCode}", app.JoinGroup)
 			r.Post("/leave/{groupId}", app.LeaveGroup)

@@ -42,12 +42,16 @@ func main() {
 		},
 		ratelimiter: rateLimiterConfig{
 			authFixedWindow: fixedWindowLimiterConfig{
-				limit:  10,
+				limit:  15,
 				window: 3 * time.Minute,
 			},
 			apiFixedWindow: fixedWindowLimiterConfig{
-				limit:  60,
+				limit:  10,
 				window: 1 * time.Minute,
+			},
+			tokenBucket: tokenBucketLimiterConfig{
+				limit:           15,
+				tokensPerMinute: 5,
 			},
 			slidingWindow: slidingWindowLimiterConfig{},
 		},
@@ -69,6 +73,9 @@ func main() {
 	apiFixedWindowLimiter := ratelimiter.NewFixedWindowLimiter(cfg.ratelimiter.apiFixedWindow.limit, cfg.ratelimiter.apiFixedWindow.window)
 	apiFixedWindowLimiter.Cleanup()
 
+	apiTokenBuckerLimiter := ratelimiter.NewTokenBuckerRatelimiter(cfg.ratelimiter.tokenBucket.limit, cfg.ratelimiter.tokenBucket.tokensPerMinute)
+	apiTokenBuckerLimiter.Cleanup()
+
 	app := &Application{
 		config:        cfg,
 		db:            db,
@@ -77,6 +84,7 @@ func main() {
 		rateLimiters: rateLimiters{
 			authFixedWindow: authFixedWindowLimiter,
 			apiFixedWindow:  apiFixedWindowLimiter,
+			tokenBucket:     apiTokenBuckerLimiter,
 		},
 	}
 
