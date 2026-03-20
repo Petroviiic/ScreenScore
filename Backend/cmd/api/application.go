@@ -1,27 +1,33 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
 	"time"
 
+	firebase "firebase.google.com/go"
+	"firebase.google.com/go/messaging"
 	_ "github.com/Petroviiic/ScreenScore/docs"
-	"github.com/Petroviiic/ScreenScore/internal/auth"
+	internalAuth "github.com/Petroviiic/ScreenScore/internal/auth"
 	"github.com/Petroviiic/ScreenScore/internal/ratelimiter"
 	"github.com/Petroviiic/ScreenScore/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
+	"google.golang.org/api/option"
 )
 
 type Application struct {
-	config        Config
-	db            *sql.DB
-	storage       *storage.Storage
-	authenticator auth.Authenticator
-	rateLimiters  rateLimiters
+	config           Config
+	db               *sql.DB
+	storage          *storage.Storage
+	authenticator    internalAuth.Authenticator
+	rateLimiters     rateLimiters
+	firebase         *messaging.Client
+	notificationChan chan NotificationTask
 }
 type rateLimiters struct {
 	apiFixedWindow  *ratelimiter.FixedWindowRateLimiter
@@ -40,7 +46,6 @@ type Config struct {
 type rateLimiterConfig struct {
 	authFixedWindow fixedWindowLimiterConfig
 	apiFixedWindow  fixedWindowLimiterConfig
-	slidingWindow   slidingWindowLimiterConfig
 	tokenBucket     tokenBucketLimiterConfig
 }
 type tokenBucketLimiterConfig struct {
@@ -50,9 +55,6 @@ type tokenBucketLimiterConfig struct {
 type fixedWindowLimiterConfig struct {
 	limit  int
 	window time.Duration
-}
-
-type slidingWindowLimiterConfig struct {
 }
 
 type authConfig struct {
@@ -65,6 +67,12 @@ type DBConfig struct {
 	maxOpenConns int
 	maxIdleTime  string
 	dbAddr       string
+}
+
+type NotificationTask struct {
+	UserID int64
+	Title  string
+	Body   string
 }
 
 func (app *Application) mount() http.Handler {
@@ -122,11 +130,30 @@ func (app *Application) mount() http.Handler {
 			r.Post("/kick", app.KickUser)
 		})
 
+		r.Route("/notifications", func(r chi.Router) {
+			r.Post("/send", app.SendNotification)
+		})
 	})
 
 	return r
 }
+func initFirebase() *messaging.Client {
+	opt := option.WithCredentialsFile("screenscore_firebase_key.json")
 
+	app, err := firebase.NewApp(context.Background(), nil, opt)
+	if err != nil {
+		log.Panicf("error initializing firebase app: %v", err)
+		return nil
+	}
+
+	fcmClient, err := app.Messaging(context.Background())
+	if err != nil {
+		log.Panicf("error initializing firebase messaging: %v", err)
+		return nil
+	}
+
+	return fcmClient
+}
 func (app *Application) run(router http.Handler) error {
 	srv := &http.Server{
 		Addr:         app.config.addr,
@@ -138,4 +165,33 @@ func (app *Application) run(router http.Handler) error {
 
 	log.Printf("server started at %s", app.config.addr)
 	return srv.ListenAndServe()
+}
+
+func (app *Application) StartNotificationWorker() {
+	log.Println("Notification worker started...")
+	for task := range app.notificationChan {
+		ctx := context.Background()
+
+		tokens, err := app.storage.DeviceStorage.GetFCMTokens(ctx, task.UserID)
+
+		if err != nil {
+			log.Printf("Could not get tokens for user %d: %v", task.UserID, err)
+			continue
+		}
+
+		for _, token := range tokens {
+			msg := &messaging.Message{
+				Token: token,
+				Notification: &messaging.Notification{
+					Title: task.Title,
+					Body:  task.Body,
+				},
+			}
+
+			_, err := app.firebase.Send(ctx, msg)
+			if err != nil {
+				log.Printf("Failed to send notification to token %s: %v", token, err)
+			}
+		}
+	}
 }
