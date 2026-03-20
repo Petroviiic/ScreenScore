@@ -54,3 +54,4 @@ dist-ssr
 *.sw?
 ThunderClient\ Collections/
 Backend/postgres_data/
+Backend/vendor/
