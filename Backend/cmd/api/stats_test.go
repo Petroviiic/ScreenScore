@@ -92,6 +92,15 @@ func TestValidateScreenTime(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 			deviceId:           "testdevice",
 		},
+
+		{
+			name:               "Accept",
+			lastRecord:         storage.UsageRecord{ScreenTime: 103, RecordedAt: time.Now().UTC().Add(-140 * time.Minute)},
+			currentScreenTime:  130,
+			currentTime:        time.Now().UTC().Format(time.RFC3339),
+			expectedStatusCode: http.StatusCreated,
+			deviceId:           "testdevice",
+		},
 	}
 
 	for _, tc := range tests {

@@ -146,8 +146,11 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
+	_, offset := currentRecordTime.Local().Zone()
+	zoneOffsetMinutes := int32(offset / 60)
+
 	todayMidnight := time.Date(currYear, currMonth, currDay, 0, 0, 0, 0, time.UTC)
-	if stats.ScreenTime > int32(currentRecordTime.Sub(todayMidnight).Minutes()) {
+	if (stats.ScreenTime - zoneOffsetMinutes) > int32(currentRecordTime.Sub(todayMidnight).Minutes()) {
 		app.badRequestResponse(w, r, fmt.Errorf("current screen time cant be longer than the duration of the current day"))
 		return
 	}
