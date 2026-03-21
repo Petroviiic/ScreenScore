@@ -27,6 +27,8 @@ func TestValidateScreenTime(t *testing.T) {
 	refTime, _ := time.Parse(time.RFC3339, "2026-03-13T12:00:00+01:00")
 	refTime = refTime.UTC()
 
+	edgeCase, _ := time.Parse(time.RFC3339, "2026-03-13T02:00:00+01:00")
+
 	tests := []testCase{
 		{
 			name:               "30 mins of screentime in 1 hour. Ok",
@@ -94,10 +96,10 @@ func TestValidateScreenTime(t *testing.T) {
 		},
 
 		{
-			name:               "Accept",
-			lastRecord:         storage.UsageRecord{ScreenTime: 103, RecordedAt: time.Now().UTC().Add(-140 * time.Minute)},
-			currentScreenTime:  130,
-			currentTime:        time.Now().UTC().Format(time.RFC3339),
+			name:               "Time zone difference. Acceptable screen time in one time zone, and not in UTC.",
+			lastRecord:         storage.UsageRecord{ScreenTime: 80, RecordedAt: edgeCase.Add(-110 * time.Minute)},
+			currentScreenTime:  100,
+			currentTime:        edgeCase.Format(time.RFC3339),
 			expectedStatusCode: http.StatusCreated,
 			deviceId:           "testdevice",
 		},
