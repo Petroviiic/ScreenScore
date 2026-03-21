@@ -333,3 +333,269 @@ export const rankColor = (idx) => {
   ];
   return palette[idx % palette.length];
 };
+
+export const loginStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#0A0A0F",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 40,
+  },
+  logoContainer: {
+    width: 68,
+    height: 68,
+    borderRadius: 20,
+    backgroundColor: "#12121A",
+    borderWidth: 1,
+    borderColor: "#00E5A0",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  logoIcon: {
+    fontSize: 30,
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  tagline: {
+    fontSize: 13,
+    color: "#555568",
+    letterSpacing: 0.4,
+  },
+  form: {
+    backgroundColor: "#12121A",
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "#1E1E2E",
+  },
+  formTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 24,
+  },
+  inputWrapper: {
+    marginBottom: 18,
+  },
+  inputLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#00E5A0",
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: "#0A0A0F",
+    borderWidth: 1,
+    borderColor: "#1E1E2E",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: "#FFFFFF",
+    fontSize: 15,
+  },
+  passwordContainer: {
+    position: "relative",
+  },
+  passwordInput: {
+    paddingRight: 50,
+  },
+  eyeButton: {
+    position: "absolute",
+    right: 14,
+    top: 14,
+  },
+  eyeIcon: {
+    fontSize: 18,
+  },
+  button: {
+    backgroundColor: "#00E5A0",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: "#0A0A0F",
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 20,
+    gap: 10,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#1E1E2E",
+  },
+  dividerText: {
+    color: "#3A3A4A",
+    fontSize: 13,
+  },
+  secondaryButton: {
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    color: "#555568",
+    fontSize: 14,
+  },
+  secondaryButtonAccent: {
+    color: "#00E5A0",
+    fontWeight: "700",
+  },
+});
+
+export const registerStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#0A0A0F",
+  },
+  scroll: {
+    paddingHorizontal: 28,
+    paddingTop: 20,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 32,
+  },
+  backButton: {
+    alignSelf: "flex-start",
+    padding: 8,
+    marginBottom: 16,
+  },
+  backIcon: {
+    color: "#00E5A0",
+    fontSize: 22,
+    fontWeight: "600",
+  },
+  logoContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: "#12121A",
+    borderWidth: 1,
+    borderColor: "#00E5A0",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  logoIcon: {
+    fontSize: 26,
+  },
+  appName: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  tagline: {
+    fontSize: 13,
+    color: "#555568",
+    letterSpacing: 0.3,
+  },
+  form: {
+    backgroundColor: "#12121A",
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "#1E1E2E",
+  },
+  formTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 24,
+  },
+  inputWrapper: {
+    marginBottom: 18,
+  },
+  inputLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#00E5A0",
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: "#0A0A0F",
+    borderWidth: 1,
+    borderColor: "#1E1E2E",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: "#FFFFFF",
+    fontSize: 15,
+  },
+  inputError: {
+    borderColor: "#FF4D6D",
+  },
+  errorHint: {
+    color: "#FF4D6D",
+    fontSize: 11,
+    marginTop: 5,
+    marginLeft: 4,
+  },
+  passwordContainer: {
+    position: "relative",
+  },
+  passwordInput: {
+    paddingRight: 50,
+  },
+  eyeButton: {
+    position: "absolute",
+    right: 14,
+    top: 14,
+  },
+  eyeIcon: {
+    fontSize: 18,
+  },
+  button: {
+    backgroundColor: "#00E5A0",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: "#0A0A0F",
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
+  loginLink: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  loginLinkText: {
+    color: "#555568",
+    fontSize: 14,
+  },
+  loginLinkAccent: {
+    color: "#00E5A0",
+    fontWeight: "700",
+  },
+  bottomSpacer: {
+    height: 40,
+  },
+});
