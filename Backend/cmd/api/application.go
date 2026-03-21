@@ -131,7 +131,7 @@ func (app *Application) mount() http.Handler {
 		})
 
 		r.Route("/notifications", func(r chi.Router) {
-			r.Post("/send", app.SendNotification)
+			r.Post("/send", app.SendCustomNotification)
 		})
 	})
 
