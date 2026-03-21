@@ -13,11 +13,11 @@ import {
   Linking,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-
+import * as Application from "expo-application";
 const { ScreenTimeModule } = NativeModules;
 import { styles, rankColor } from "@/assets/styles/home.styles";
 const { width } = Dimensions.get("window");
-
+import * as SecureStore from "expo-secure-store";
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DAY_FULL = [
   "Monday",
@@ -99,13 +99,19 @@ export default function Home() {
   const syncToBackend = useCallback(async (stats) => {
     if (isSyncing.current) return;
     isSyncing.current = true;
+    const token = await SecureStore.getItemAsync("jwt_token");
+    const deviceId = Application.getAndroidId();
     try {
-      await fetch("http://192.168.1.16:3000/v1/stats/sync-stats", {
+      await fetch("http://192.168.1.14:3000/v1/stats/sync-stats", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           screen_time: Math.floor(stats.totalTimeMs / 60000),
           recorded_at: new Date().toISOString(),
+          device_id: deviceId,
         }),
       });
     } catch (err) {
