@@ -40,10 +40,27 @@ app-example
 
 # generated native folders
 /ios
-/android
+/android/*
+!/android/app/
+/android/app/*
+!/android/app/src/
+/android/app/src/*
+!/android/app/src/main/
+/android/app/src/main/*
+!/android/app/src/main/java/
+!/android/app/src/main/AndroidManifest.xml
+/android/app/src/main/java/*
+!/android/app/src/main/java/com/
+/android/app/src/main/java/com/*
+!/android/app/src/main/java/com/nik0la11/
+/android/app/src/main/java/com/nik0la11/*
+!/android/app/src/main/java/com/nik0la11/frontend/
 !android/app/src/main/java/com/nik0la11/frontend/ScreenTimeModule.kt
 !android/app/src/main/java/com/nik0la11/frontend/ScreenTimePackage.kt
 !android/app/src/main/java/com/nik0la11/frontend/ScreenTimeManager.kt
 !android/app/src/main/java/com/nik0la11/frontend/MainApplication.kt
 !android/app/src/main/AndroidManifest.xml
 !android/app/src/main/java/com/nik0la11/frontend/ScreenTimeWorkManager.kt
+
+# Firebase
+android/app/google-services.json

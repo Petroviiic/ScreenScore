@@ -16,6 +16,7 @@ import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import { registerStyles as styles } from "@/assets/styles/home.styles";
 import * as Application from "expo-application";
+import { getFCMToken } from "@/app/utils/fcm";
 const API_URL = "http://192.168.1.14:3000";
 
 export default function Register() {
@@ -55,6 +56,12 @@ export default function Register() {
     setLoading(true);
     try {
       const deviceId = Application.getAndroidId();
+      const fcmToken = await getFCMToken();
+      if (!fcmToken) {
+        Alert.alert("Error", "Could not get notification token.");
+        setLoading(false);
+        return;
+      }
 
       const response = await fetch(`${API_URL}/v1/users/register`, {
         method: "POST",
@@ -64,7 +71,7 @@ export default function Register() {
           email: form.email.trim().toLowerCase(),
           password: form.password,
           device_id: deviceId,
-          push_notification_token: "",
+          push_notification_token: fcmToken,
         }),
       });
 
