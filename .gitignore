@@ -55,3 +55,4 @@ dist-ssr
 ThunderClient\ Collections/
 Backend/postgres_data/
 Backend/vendor/
+Backend/screenscore_firebase_key.json
