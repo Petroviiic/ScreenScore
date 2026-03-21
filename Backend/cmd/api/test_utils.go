@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Petroviiic/ScreenScore/internal/auth"
+	"github.com/Petroviiic/ScreenScore/internal/ratelimiter"
 	"github.com/Petroviiic/ScreenScore/internal/storage"
 )
 
@@ -17,6 +18,11 @@ func newTestApplication(t *testing.T) *Application {
 	return &Application{
 		storage:       storage,
 		authenticator: auth,
+		rateLimiters: rateLimiters{
+			apiFixedWindow:  ratelimiter.NewFixedWindowLimiter(100, 1),
+			authFixedWindow: ratelimiter.NewFixedWindowLimiter(100, 1),
+			tokenBucket:     ratelimiter.NewTokenBuckerRatelimiter(10, 10),
+		},
 	}
 }
 

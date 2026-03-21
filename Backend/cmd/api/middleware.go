@@ -65,10 +65,6 @@ func (app *Application) RatelimiterMiddleware(limiter ratelimiter.Limiter, useUs
 			var key string
 			if useUserID {
 				id := GetUserFromContext(r)
-				if id == 0 {
-					app.unauthorizedErrorResponse(w, r, fmt.Errorf("user not found"))
-					return
-				}
 				key = fmt.Sprintf("%d", id)
 			} else {
 				key = fmt.Sprintf("ip:%s", r.RemoteAddr)

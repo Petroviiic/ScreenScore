@@ -53,7 +53,6 @@ func main() {
 				limit:           15,
 				tokensPerMinute: 5,
 			},
-			slidingWindow: slidingWindowLimiterConfig{},
 		},
 	}
 
@@ -76,6 +75,11 @@ func main() {
 	apiTokenBuckerLimiter := ratelimiter.NewTokenBuckerRatelimiter(cfg.ratelimiter.tokenBucket.limit, cfg.ratelimiter.tokenBucket.tokensPerMinute)
 	apiTokenBuckerLimiter.Cleanup()
 
+	firebaseApp := initFirebase()
+	if firebaseApp == nil {
+		log.Panic("firebase client is empty")
+	}
+
 	app := &Application{
 		config:        cfg,
 		db:            db,
@@ -86,9 +90,13 @@ func main() {
 			apiFixedWindow:  apiFixedWindowLimiter,
 			tokenBucket:     apiTokenBuckerLimiter,
 		},
+		firebase:         firebaseApp,
+		notificationChan: make(chan NotificationTask),
 	}
 
 	router := app.mount()
+
+	go app.StartNotificationWorker()
 
 	if err := app.run(router); err != nil {
 		log.Panic("error starting the server")
