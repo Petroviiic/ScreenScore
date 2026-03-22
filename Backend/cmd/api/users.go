@@ -133,3 +133,15 @@ func (app *Application) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// ValidateJWT godoc
+// @Summary      Validate JWT
+// @Description  Checks if jwt token is valid to skip login process
+// @Tags         auth
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Router       /users/validate_token [post]
+// @Success      200      {string}  string       "Valid token"
+// @Failure      401      {object}  map[string]string "Invalid token"
+func (app *Application) ValidateJWTToken(w http.ResponseWriter, r *http.Request) {}
