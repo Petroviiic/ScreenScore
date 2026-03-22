@@ -236,9 +236,8 @@ const docTemplate = `{
                 }
             }
         },
-        "/notifications/send": {
+        "/notifications/send_custom": {
             "post": {
-                "description": "Updates or adds a new screen time record for a specific device.",
                 "consumes": [
                     "application/json"
                 ],
@@ -248,7 +247,7 @@ const docTemplate = `{
                 "tags": [
                     "notifications"
                 ],
-                "summary": "Sends notification to a user",
+                "summary": "Sends a custom notification to a user",
                 "parameters": [
                     {
                         "description": "Notification data",
@@ -261,7 +260,7 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "Sent",
                         "schema": {
                             "type": "string"
@@ -269,6 +268,76 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad request payload",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/send_preset": {
+            "post": {
+                "description": "Updates or adds a new screen time record for a specific device.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Sends preset notification to a group",
+                "parameters": [
+                    {
+                        "description": "PresetNotification data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.PresetNotification"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sent",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request payload",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -507,6 +576,43 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/users/validate_token": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Checks if jwt token is valid to skip login process",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Validate JWT",
+                "responses": {
+                    "200": {
+                        "description": "Valid token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -557,7 +663,7 @@ const docTemplate = `{
             "required": [
                 "body",
                 "title",
-                "user_id"
+                "to_user_id"
             ],
             "properties": {
                 "body": {
@@ -566,7 +672,18 @@ const docTemplate = `{
                 "title": {
                     "type": "string"
                 },
-                "user_id": {
+                "to_user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "main.PresetNotification": {
+            "type": "object",
+            "properties": {
+                "groupID": {
+                    "type": "string"
+                },
+                "messageId": {
                     "type": "integer"
                 }
             }

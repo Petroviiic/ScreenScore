@@ -34,12 +34,19 @@ definitions:
         type: string
       title:
         type: string
-      user_id:
+      to_user_id:
         type: integer
     required:
     - body
     - title
-    - user_id
+    - to_user_id
+    type: object
+  main.PresetNotification:
+    properties:
+      groupID:
+        type: string
+      messageId:
+        type: integer
     type: object
   main.UserPayload:
     properties:
@@ -237,11 +244,10 @@ paths:
       summary: Health check
       tags:
       - utils
-  /notifications/send:
+  /notifications/send_custom:
     post:
       consumes:
       - application/json
-      description: Updates or adds a new screen time record for a specific device.
       parameters:
       - description: Notification data
         in: body
@@ -252,7 +258,7 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
+        "200":
           description: Sent
           schema:
             type: string
@@ -262,7 +268,53 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Sends notification to a user
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Sends a custom notification to a user
+      tags:
+      - notifications
+  /notifications/send_preset:
+    post:
+      consumes:
+      - application/json
+      description: Updates or adds a new screen time record for a specific device.
+      parameters:
+      - description: PresetNotification data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.PresetNotification'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sent
+          schema:
+            type: string
+        "400":
+          description: Bad request payload
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden access
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Sends preset notification to a group
       tags:
       - notifications
   /stats/get-group-stats:
@@ -415,6 +467,29 @@ paths:
               type: string
             type: object
       summary: Register a new user
+      tags:
+      - auth
+  /users/validate_token:
+    post:
+      consumes:
+      - application/json
+      description: Checks if jwt token is valid to skip login process
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Valid token
+          schema:
+            type: string
+        "401":
+          description: Invalid token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Validate JWT
       tags:
       - auth
 securityDefinitions:
