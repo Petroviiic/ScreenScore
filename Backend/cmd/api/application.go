@@ -103,13 +103,21 @@ func (app *Application) mount() http.Handler {
 		r.Route("/users", func(r chi.Router) {
 			r.Use(app.RatelimiterMiddleware(app.rateLimiters.authFixedWindow, false))
 
-			//r.Post("/get-by-id", app.GetById)
-			r.Post("/register", app.RegisterUser)
-			r.Post("/login", app.Login)
+			r.Group(func(r chi.Router) {
+				//r.Post("/get-by-id", app.GetById)
+				r.Post("/register", app.RegisterUser)
+				r.Post("/login", app.Login)
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(app.TokenAuthMiddleware)
+				r.Post("/validate_token", app.ValidateJWTToken)
+			})
 		})
 
 		r.Route("/stats", func(r chi.Router) {
 			r.Use(app.TokenAuthMiddleware)
+
 			r.Group(func(r chi.Router) {
 				r.Use(app.RatelimiterMiddleware(app.rateLimiters.tokenBucket, true))
 				r.Post("/sync-stats", app.SyncStats)
@@ -131,7 +139,11 @@ func (app *Application) mount() http.Handler {
 		})
 
 		r.Route("/notifications", func(r chi.Router) {
-			r.Post("/send", app.SendCustomNotification)
+			r.Use(app.TokenAuthMiddleware)
+
+			r.Use(app.RatelimiterMiddleware(app.rateLimiters.apiFixedWindow, true)) //mzd da ovaj custom ne ide na auth ali aj vidjecu
+			r.Post("/send_custom", app.SendCustomNotification)
+			r.Post("/send_preset", app.SendPresetNotification)
 		})
 	})
 
@@ -165,33 +177,4 @@ func (app *Application) run(router http.Handler) error {
 
 	log.Printf("server started at %s", app.config.addr)
 	return srv.ListenAndServe()
-}
-
-func (app *Application) StartNotificationWorker() {
-	log.Println("Notification worker started...")
-	for task := range app.notificationChan {
-		ctx := context.Background()
-
-		tokens, err := app.storage.DeviceStorage.GetFCMTokens(ctx, task.UserID)
-
-		if err != nil {
-			log.Printf("Could not get tokens for user %d: %v", task.UserID, err)
-			continue
-		}
-
-		for _, token := range tokens {
-			msg := &messaging.Message{
-				Token: token,
-				Notification: &messaging.Notification{
-					Title: task.Title,
-					Body:  task.Body,
-				},
-			}
-
-			_, err := app.firebase.Send(ctx, msg)
-			if err != nil {
-				log.Printf("Failed to send notification to token %s: %v", token, err)
-			}
-		}
-	}
 }

@@ -1,16 +1,20 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
+
+	"firebase.google.com/go/messaging"
 )
 
 var PresetMessages = map[int]string{
-	1: "Touch some grass! 🌿",
-	2: "Put the phone down! 📵",
-	3: "Go take a nap, screen addict! 😴",
-	4: "Is TikTok that interesting? 📱",
-	5: "Eyes up, phone down! 🚫",
+	1: "Touch some grass!",
+	2: "Put the phone down!",
+	3: "Go take a nap, screen addict!",
+	4: "Is TikTok that interesting?",
+	5: "Eyes up, phone down!",
 }
 
 type Notification struct {
@@ -20,8 +24,7 @@ type Notification struct {
 }
 
 // SendCustomNotification godoc
-// @Summary      Sends notification to a user
-// @Description  Updates or adds a new screen time record for a specific device.
+// @Summary      Sends a custom notification to a user
 // @Tags         notifications
 // @Accept       json
 // @Produce      json
@@ -29,7 +32,7 @@ type Notification struct {
 // @Success      200      {string}  string            "Sent"
 // @Failure      400      {object}  map[string]string "Bad request payload"
 // @Failure      500      {object}  map[string]string "Internal server error"
-// @Router       /notifications/send [post]
+// @Router       /notifications/send_custom [post]
 func (app *Application) SendCustomNotification(w http.ResponseWriter, r *http.Request) {
 	var payload Notification
 	if err := readJson(w, r, &payload); err != nil {
@@ -54,10 +57,27 @@ type PresetNotification struct {
 	MessageId int
 }
 
+// SendPresetNotification godoc
+// @Summary      Sends preset notification to a group
+// @Description  Updates or adds a new screen time record for a specific device.
+// @Tags         notifications
+// @Accept       json
+// @Produce      json
+// @Param        payload  body      PresetNotification  true  "PresetNotification data"
+// @Success      200      {string}  string            "Sent"
+// @Failure      400      {object}  map[string]string "Bad request payload"
+// @Failure      500      {object}  map[string]string "Internal server error"
+// @Failure      403      {object}  map[string]string "Forbidden access"
+// @Router       /notifications/send_preset [post]
 func (app *Application) SendPresetNotification(w http.ResponseWriter, r *http.Request) {
 	var payload PresetNotification
 	if err := readJson(w, r, &payload); err != nil {
 		app.badRequestResponse(w, r, err)
+		return
+	}
+	msg, ok := PresetMessages[payload.MessageId]
+	if !ok {
+		app.badRequestResponse(w, r, fmt.Errorf("preset message %d not found", payload.MessageId))
 		return
 	}
 
@@ -69,22 +89,56 @@ func (app *Application) SendPresetNotification(w http.ResponseWriter, r *http.Re
 		app.forbiddenResponse(w, r)
 		return
 	}
+	user, err := app.storage.UserStorage.GetById(ctx, userID)
+	if err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
 
-	// members, err := app.storage.GroupStorage.GetGroupMembers(ctx, payload.GroupID)
-	// if err != nil {
-	// 	app.internalServerErrorJson(w, r, err)
-	// 	return
-	// }
-	// for _, val := range members {
-	// 	app.notificationChan <- NotificationTask{
-	// 		UserID: val.UserID,
-	// 		Title:  payload.Title,
-	// 		Body:   PresetMessages[payload.MessageId],
-	// 	}
-	// }
+	members, err := app.storage.GroupStorage.GetGroupMembersExclusive(ctx, payload.GroupID, userID)
+	if err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+	for _, val := range members {
+		app.notificationChan <- NotificationTask{
+			UserID: int64(val),
+			Title:  fmt.Sprintf("%s says: ", user.Username),
+			Body:   msg,
+		}
+	}
 
 	if err := jsonResponse(w, http.StatusOK, nil); err != nil {
 		app.internalServerErrorJson(w, r, err)
 		return
+	}
+}
+
+func (app *Application) StartNotificationWorker() {
+	log.Println("Notification worker started...")
+	for task := range app.notificationChan {
+		ctx := context.Background()
+
+		tokens, err := app.storage.DeviceStorage.GetFCMTokens(ctx, task.UserID)
+
+		if err != nil {
+			log.Printf("Could not get tokens for user %d: %v", task.UserID, err)
+			continue
+		}
+
+		for _, token := range tokens {
+			msg := &messaging.Message{
+				Token: token,
+				Notification: &messaging.Notification{
+					Title: task.Title,
+					Body:  task.Body,
+				},
+			}
+
+			_, err := app.firebase.Send(ctx, msg)
+			if err != nil {
+				log.Printf("Failed to send notification to token %s: %v", token, err)
+			}
+		}
 	}
 }
