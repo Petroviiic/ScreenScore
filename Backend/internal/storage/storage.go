@@ -26,6 +26,7 @@ type Storage struct {
 	GroupStorage interface {
 		CheckIfMember(context.Context, int64, string) bool
 		CreateGroup(context.Context, string) (string, error)
+		GetGroupMembersExclusive(context.Context, string, int64) ([]int, error)
 		JoinGroup(ctx context.Context, userId int64, inviteCode string) (string, error)
 		LeaveGroup(ctx context.Context, userId int64, groupId string) error
 		KickUser(context.Context, int64, string) error

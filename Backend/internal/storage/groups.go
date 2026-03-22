@@ -53,7 +53,8 @@ func (g *GroupStorage) CreateGroup(ctx context.Context, groupName string) (strin
 			`
 
 	inviteCode := RandomInviteCode(10)
-
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	_, err := g.db.ExecContext(
 		ctx,
 		query,
@@ -72,6 +73,10 @@ func (g *GroupStorage) JoinGroup(ctx context.Context, userId int64, inviteCode s
 	query := `
 		INSERT INTO group_members (group_id, user_id) SELECT id, $1 FROM groups WHERE invite_code = $2 RETURNING group_id;
 	`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	var groupId string
 	err := g.db.QueryRowContext(
 		ctx,
@@ -96,6 +101,10 @@ func (g *GroupStorage) LeaveGroup(ctx context.Context, userId int64, groupId str
 	query := `
 		DELETE FROM group_members WHERE group_id = $1 AND user_id = $2;
 	`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	_, err := g.db.ExecContext(
 		ctx,
 		query,
@@ -110,4 +119,40 @@ func (g *GroupStorage) LeaveGroup(ctx context.Context, userId int64, groupId str
 
 func (g *GroupStorage) KickUser(ctx context.Context, userId int64, groupId string) error {
 	return g.LeaveGroup(ctx, userId, groupId)
+}
+
+func (g *GroupStorage) GetGroupMembersExclusive(ctx context.Context, groupId string, excludeId int64) ([]int, error) {
+	query := `
+				SELECT user_id FROM group_members
+				WHERE group_id = $1 AND user_id != $2;
+				`
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	rows, err := g.db.QueryContext(
+		ctx,
+		query,
+		groupId,
+		excludeId,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []int
+	for rows.Next() {
+		var id int
+		err := rows.Scan(
+			&id,
+		)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+
 }
