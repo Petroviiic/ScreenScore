@@ -26,6 +26,7 @@ type Notification struct {
 // SendCustomNotification godoc
 // @Summary      Sends a custom notification to a user
 // @Tags         notifications
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        payload  body      Notification  true  "Notification data"
@@ -59,8 +60,8 @@ type PresetNotification struct {
 
 // SendPresetNotification godoc
 // @Summary      Sends preset notification to a group
-// @Description  Updates or adds a new screen time record for a specific device.
 // @Tags         notifications
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        payload  body      PresetNotification  true  "PresetNotification data"
@@ -116,6 +117,20 @@ func (app *Application) SendPresetNotification(w http.ResponseWriter, r *http.Re
 
 func (app *Application) StartNotificationWorker() {
 	log.Println("Notification worker started...")
+
+	msg := &messaging.Message{
+		Token:        "f18auD8cQ--YUIfy9cfdb6:APA91bF4yXNXLQsSTGdeCSGPpUP97Rr1lHerSXnlAEZTsxTTBA9Q2rmMQBnDNsyapF1_Nb-i2pnXhIyNOkUfHLiys4ZRBcFHPXdZs2PnBN6FwKeb-kKU4SI",
+		Notification: &messaging.Notification{
+			//Title: "samo title",
+			//Body: "Marko i ja imamo seks",
+		},
+		Android: &messaging.AndroidConfig{
+			Priority: "high",
+		},
+		Data: map[string]string{"cao": "pozdrav"},
+	}
+	app.firebase.Send(context.Background(), msg)
+
 	for task := range app.notificationChan {
 		ctx := context.Background()
 

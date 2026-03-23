@@ -274,6 +274,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Sends a custom notification to a user
       tags:
       - notifications
@@ -281,7 +283,6 @@ paths:
     post:
       consumes:
       - application/json
-      description: Updates or adds a new screen time record for a specific device.
       parameters:
       - description: PresetNotification data
         in: body
@@ -314,6 +315,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Sends preset notification to a group
       tags:
       - notifications

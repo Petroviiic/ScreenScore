@@ -238,6 +238,11 @@ const docTemplate = `{
         },
         "/notifications/send_custom": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -289,7 +294,11 @@ const docTemplate = `{
         },
         "/notifications/send_preset": {
             "post": {
-                "description": "Updates or adds a new screen time record for a specific device.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
