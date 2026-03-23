@@ -15,11 +15,11 @@ import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 import { loginStyles as styles } from "@/assets/styles/home.styles";
 import * as Application from "expo-application";
+import getFCMToken from "@/app/utils/fcm";
 
 const API_URL = "http://192.168.1.14:3000";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -33,6 +33,12 @@ export default function Login() {
     setLoading(true);
     try {
       const deviceId = Application.getAndroidId();
+      const fcmToken = await getFCMToken();
+      if (!fcmToken) {
+        Alert.alert("Error", "Could not get notification token.");
+        setLoading(false);
+        return;
+      }
 
       const response = await fetch(`${API_URL}/v1/users/login`, {
         method: "POST",
@@ -42,6 +48,7 @@ export default function Login() {
           password: password,
           device_id: deviceId,
           username: username.trim(),
+          push_notification_token: fcmToken,
         }),
       });
 
