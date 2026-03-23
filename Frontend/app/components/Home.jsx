@@ -18,6 +18,7 @@ const { ScreenTimeModule } = NativeModules;
 import { styles, rankColor } from "@/assets/styles/home.styles";
 const { width } = Dimensions.get("window");
 import * as SecureStore from "expo-secure-store";
+const API_URL = "http://192.168.1.14:3000";
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DAY_FULL = [
   "Monday",
@@ -102,7 +103,7 @@ export default function Home() {
     const token = await SecureStore.getItemAsync("jwt_token");
     const deviceId = Application.getAndroidId();
     try {
-      await fetch("http://192.168.1.14:3000/v1/stats/sync-stats", {
+      await fetch(`${API_URL}/v1/stats/sync-stats`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

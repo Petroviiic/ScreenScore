@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.screenscore.app"
+      "package": "com.screenscore.app",
+      "googleServicesFile": "./android/app/google-services.json"
     },
     "web": {
       "output": "static",
@@ -28,6 +29,8 @@
     },
     "plugins": [
       "expo-router",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       [
         "expo-splash-screen",
         {
