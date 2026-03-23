@@ -127,7 +127,16 @@ func (app *Application) StartNotificationWorker() {
 		Android: &messaging.AndroidConfig{
 			Priority: "high",
 		},
-		Data: map[string]string{"cao": "pozdrav"},
+		Data: map[string]string{
+			"type":       "sync",
+			"request_id": "123"},
+		APNS: &messaging.APNSConfig{
+			Payload: &messaging.APNSPayload{
+				Aps: &messaging.Aps{
+					ContentAvailable: true,
+				},
+			},
+		},
 	}
 	app.firebase.Send(context.Background(), msg)
 
