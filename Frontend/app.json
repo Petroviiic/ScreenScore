@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.screenscore.app"
+      "package": "com.screenscore.app",
+      "googleServicesFile": "./android/app/google-services.json"
     },
     "web": {
       "output": "static",

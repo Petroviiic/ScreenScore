@@ -52,15 +52,14 @@ app-example
 /android/app/src/main/java/*
 !/android/app/src/main/java/com/
 /android/app/src/main/java/com/*
-!/android/app/src/main/java/com/nik0la11/
-/android/app/src/main/java/com/nik0la11/*
-!/android/app/src/main/java/com/nik0la11/frontend/
-!android/app/src/main/java/com/nik0la11/frontend/ScreenTimeModule.kt
-!android/app/src/main/java/com/nik0la11/frontend/ScreenTimePackage.kt
-!android/app/src/main/java/com/nik0la11/frontend/ScreenTimeManager.kt
-!android/app/src/main/java/com/nik0la11/frontend/MainApplication.kt
-!android/app/src/main/AndroidManifest.xml
-!android/app/src/main/java/com/nik0la11/frontend/ScreenTimeWorkManager.kt
+!/android/app/src/main/java/com/screenscore/
+/android/app/src/main/java/com/screenscore/*
+!/android/app/src/main/java/com/screenscore/app/
+!/android/app/src/main/java/com/screenscore/app/ScreenTimeModule.kt
+!/android/app/src/main/java/com/screenscore/app/ScreenTimePackage.kt
+!/android/app/src/main/java/com/screenscore/app/ScreenTimeWorkManager.kt
+!/android/app/src/main/java/com/screenscore/app/BootReceiver.kt
+!/android/app/src/main/java/com/screenscore/app/MainApplication.kt
 
 # Firebase
 android/app/google-services.json
