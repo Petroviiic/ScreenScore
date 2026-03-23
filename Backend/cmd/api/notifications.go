@@ -118,27 +118,27 @@ func (app *Application) SendPresetNotification(w http.ResponseWriter, r *http.Re
 func (app *Application) StartNotificationWorker() {
 	log.Println("Notification worker started...")
 
-	msg := &messaging.Message{
-		Token:        "f18auD8cQ--YUIfy9cfdb6:APA91bF4yXNXLQsSTGdeCSGPpUP97Rr1lHerSXnlAEZTsxTTBA9Q2rmMQBnDNsyapF1_Nb-i2pnXhIyNOkUfHLiys4ZRBcFHPXdZs2PnBN6FwKeb-kKU4SI",
-		Notification: &messaging.Notification{
-			//Title: "samo title",
-			//Body: "Marko i ja imamo seks",
-		},
-		Android: &messaging.AndroidConfig{
-			Priority: "high",
-		},
-		Data: map[string]string{
-			"type":       "sync",
-			"request_id": "123"},
-		APNS: &messaging.APNSConfig{
-			Payload: &messaging.APNSPayload{
-				Aps: &messaging.Aps{
-					ContentAvailable: true,
-				},
-			},
-		},
-	}
-	app.firebase.Send(context.Background(), msg)
+	// msg := &messaging.Message{
+	// 	Token: "c8tfYz4ES7CAGjU2cIlD6h:APA91bExZ1gr90RHalBvQN6O8YFnYDSBSjDO98olq26BjNp5jlyybbMYBCSTQOqlh_aoiAkCXwZz76hnme7jeijo2y4BJVJTYT8OKyl2jfgBBUrAHzDm8ZM",
+	// 	Notification: &messaging.Notification{
+	// 		Title: "samo title",
+	// 		Body:  "Marko i ja imamo seks2",
+	// 	},
+	// 	Android: &messaging.AndroidConfig{
+	// 		Priority: "high",
+	// 	},
+	// 	Data: map[string]string{
+	// 		"type":       "sync",
+	// 		"request_id": "123"},
+	// 	APNS: &messaging.APNSConfig{
+	// 		Payload: &messaging.APNSPayload{
+	// 			Aps: &messaging.Aps{
+	// 				ContentAvailable: true,
+	// 			},
+	// 		},
+	// 	},
+	// }
+	// app.firebase.Send(context.Background(), msg)
 
 	for task := range app.notificationChan {
 		ctx := context.Background()
