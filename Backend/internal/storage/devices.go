@@ -56,3 +56,7 @@ func (d *DeviceStorage) GetFCMTokens(ctx context.Context, userId int64) ([]strin
 
 	return tokens, nil
 }
+
+func (d *DeviceStorage) RequestDeviceSync(ctx context.Context, batchSize int) ([]string, error) {
+	return []string{}, nil
+}
