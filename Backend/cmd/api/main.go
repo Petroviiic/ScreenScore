@@ -54,6 +54,12 @@ func main() {
 				tokensPerMinute: 5,
 			},
 		},
+		notifications: notificationsConfig{
+			// silentNotificationTimer: 30 * time.Minute,
+			// silentNotificationBatchSize: 100,
+			silentNotificationTimer:     3 * time.Second,
+			silentNotificationBatchSize: 2,
+		},
 	}
 
 	db, err := db.NewDb(cfg.dbConfig.dbAddr, cfg.dbConfig.maxIdleConns, cfg.dbConfig.maxOpenConns, cfg.dbConfig.maxIdleTime)
@@ -97,6 +103,7 @@ func main() {
 	router := app.mount()
 
 	go app.StartNotificationWorker()
+	app.StartSilentNotificationWorker()
 
 	if err := app.run(router); err != nil {
 		log.Panic("error starting the server")

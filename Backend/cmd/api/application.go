@@ -41,8 +41,13 @@ type Config struct {
 	maxGroupNameLen int
 	auth            authConfig
 	ratelimiter     rateLimiterConfig
+	notifications   notificationsConfig
 }
 
+type notificationsConfig struct {
+	silentNotificationTimer     time.Duration
+	silentNotificationBatchSize int
+}
 type rateLimiterConfig struct {
 	authFixedWindow fixedWindowLimiterConfig
 	apiFixedWindow  fixedWindowLimiterConfig
