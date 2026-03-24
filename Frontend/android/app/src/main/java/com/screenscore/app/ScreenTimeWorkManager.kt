@@ -30,7 +30,7 @@ class ScreenTimeWorkManager(context: Context, workerParams: WorkerParameters) :
             json.put("recorded_at", recordedAt)
 
             // Same endpoint as syncToBackend() in Home.jsx
-            val url = URL("http://mojip:3000/v1/stats/sync-stats")
+            val url = URL("http://https://shenika-ovarian-unpiratically.ngrok-free.dev/v1/stats/sync-stats")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.setRequestProperty("Content-Type", "application/json")

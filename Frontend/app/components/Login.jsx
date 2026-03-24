@@ -17,7 +17,7 @@ import { loginStyles as styles } from "@/assets/styles/home.styles";
 import * as Application from "expo-application";
 import getFCMToken from "@/app/utils/fcm";
 
-const API_URL = "http://192.168.1.14:3000";
+const API_URL = "https://shenika-ovarian-unpiratically.ngrok-free.dev";
 
 export default function Login() {
   const [password, setPassword] = useState("");
