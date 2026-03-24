@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	firebase "firebase.google.com/go"
-	"firebase.google.com/go/messaging"
+	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/messaging"
 	_ "github.com/Petroviiic/ScreenScore/docs"
 	internalAuth "github.com/Petroviiic/ScreenScore/internal/auth"
 	"github.com/Petroviiic/ScreenScore/internal/ratelimiter"
