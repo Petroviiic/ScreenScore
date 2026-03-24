@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import Home from "@/app/components/Home";
+import { useRouter } from "expo-router";
 import Login from "@/app/components/Login";
 
 export default function Index() {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -15,8 +16,13 @@ export default function Index() {
     checkAuth();
   }, []);
 
-  // dok čeka provjeru tokena
-  if (isLoggedIn === null) {
+  useEffect(() => {
+    if (isLoggedIn === true) {
+      router.replace("/(tabs)");
+    }
+  }, [isLoggedIn]);
+
+  if (isLoggedIn === null || isLoggedIn === true) {
     return (
       <View
         style={{
@@ -31,5 +37,5 @@ export default function Index() {
     );
   }
 
-  return isLoggedIn ? <Home /> : <Login />;
+  return <Login />;
 }

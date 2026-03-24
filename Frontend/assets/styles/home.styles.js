@@ -599,3 +599,62 @@ export const registerStyles = StyleSheet.create({
     height: 40,
   },
 });
+
+// Groups styles
+
+export const groupsStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#0F0F14",
+  },
+  scroll: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 24,
+    marginTop: 12,
+  },
+  section: {
+    backgroundColor: "#1A1A24",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#888",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+  input: {
+    backgroundColor: "#0F0F14",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: "#fff",
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: "#2A2A38",
+  },
+  btn: {
+    backgroundColor: "#7C6EF5",
+    borderRadius: 10,
+    paddingVertical: 13,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  btnDanger: {
+    backgroundColor: "#E05555",
+  },
+  btnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
+  },
+});
