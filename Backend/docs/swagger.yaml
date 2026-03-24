@@ -320,6 +320,38 @@ paths:
       summary: Sends preset notification to a group
       tags:
       - notifications
+  /notifications/sendtestsilent/{token}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Token (URL parameter)
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "400":
+          description: Token malformed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Sends a test silent notification
+      tags:
+      - notifications
   /stats/get-group-stats:
     post:
       consumes:
