@@ -160,6 +160,10 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := app.storage.DeviceStorage.UpdateLastSeen(ctx, userId, stats.DeviceID); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
 	if err := jsonResponse(w, http.StatusCreated, "database updated"); err != nil {
 		app.internalServerErrorJson(w, r, err)
 		return
