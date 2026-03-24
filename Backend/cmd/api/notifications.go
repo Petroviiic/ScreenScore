@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"firebase.google.com/go/messaging"
+	"firebase.google.com/go/v4/messaging"
 )
 
 var PresetMessages = map[int]string{
@@ -118,28 +118,6 @@ func (app *Application) SendPresetNotification(w http.ResponseWriter, r *http.Re
 func (app *Application) StartNotificationWorker() {
 	log.Println("Notification worker started...")
 
-	// msg := &messaging.Message{
-	// 	Token: "c8tfYz4ES7CAGjU2cIlD6h:APA91bExZ1gr90RHalBvQN6O8YFnYDSBSjDO98olq26BjNp5jlyybbMYBCSTQOqlh_aoiAkCXwZz76hnme7jeijo2y4BJVJTYT8OKyl2jfgBBUrAHzDm8ZM",
-	// 	Notification: &messaging.Notification{
-	// 		Title: "samo title",
-	// 		Body:  "Marko i ja imamo seks2",
-	// 	},
-	// 	Android: &messaging.AndroidConfig{
-	// 		Priority: "high",
-	// 	},
-	// 	Data: map[string]string{
-	// 		"type":       "sync",
-	// 		"request_id": "123"},
-	// 	APNS: &messaging.APNSConfig{
-	// 		Payload: &messaging.APNSPayload{
-	// 			Aps: &messaging.Aps{
-	// 				ContentAvailable: true,
-	// 			},
-	// 		},
-	// 	},
-	// }
-	// app.firebase.Send(context.Background(), msg)
-
 	for task := range app.notificationChan {
 		ctx := context.Background()
 
@@ -162,6 +140,9 @@ func (app *Application) StartNotificationWorker() {
 			_, err := app.firebase.Send(ctx, msg)
 			if err != nil {
 				log.Printf("Failed to send notification to token %s: %v", token, err)
+				if err := app.storage.DeviceStorage.DeleteFCMToken(token); err != nil {
+					log.Printf("Token %v is not valid, but couldn't be deleted, error: %v \n", token, err)
+				}
 			}
 		}
 	}
