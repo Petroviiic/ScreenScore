@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
-	"firebase.google.com/go/messaging"
+	"firebase.google.com/go/v4/messaging"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -63,40 +62,13 @@ func (app *Application) sendTestNotification(w http.ResponseWriter, r *http.Requ
 func (app *Application) StartSilentNotificationWorker() {
 	fmt.Println("Silent notification ticker started...")
 	ticker := time.NewTicker(app.config.notifications.silentNotificationTimer)
-	i := 0
-	return
+	//i := 0
+	//return
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				fmt.Println("saljem")
-				i++
-				msg := &messaging.Message{
-					Token: "cQ-voKAkQbKNt5zBW__s3z:APA91bGoydj8Jkzx7gMV9SQ1ZI8rKR1Vk0WUi8wenxNOu_SvQfEjiV66jFFkSWFyqpdkoiqvUE7VtAWbKD9rwY_0ScxJ8XwFWZ6rOlEXPWHEMXrvg8Byf3w",
-					Notification: &messaging.Notification{
-						Title: "samo title",
-						Body:  "Marko i ja imamo seks2 " + strconv.Itoa(i),
-					},
-					Android: &messaging.AndroidConfig{
-						Priority: "high",
-					},
-					Data: map[string]string{
-						"type":       "sync",
-						"request_id": "123"},
-					APNS: &messaging.APNSConfig{
-						Payload: &messaging.APNSPayload{
-							Aps: &messaging.Aps{
-								ContentAvailable: true,
-							},
-						},
-					},
-				}
-				_, err := app.firebase.Send(context.Background(), msg)
-
-				if err != nil {
-					log.Printf("Failed to send notification: %v", err)
-				}
-				break
+				fmt.Println("requesting data sync")
 				ctx := context.Background()
 				tokens, err := app.storage.DeviceStorage.RequestDeviceSync(ctx, app.config.notifications.silentNotificationBatchSize)
 
@@ -104,34 +76,67 @@ func (app *Application) StartSilentNotificationWorker() {
 					log.Println("internal server error, couldn't retrieve devices")
 					break
 				}
-				fmt.Printf("nasao sam %d tokena\n", len(tokens))
-				for _, token := range tokens {
-					fmt.Println("token: ", token)
-					// msg := &messaging.Message{
-					// 	Token: token,
-					// 	Android: &messaging.AndroidConfig{
-					// 		Priority: "high",
-					// 	},
-					// 	Data: map[string]string{
-					// 		"type":       "sync",
-					// 		"request_id": "123"},
-					// 	APNS: &messaging.APNSConfig{
-					// 		Payload: &messaging.APNSPayload{
-					// 			Aps: &messaging.Aps{
-					// 				ContentAvailable: true,
-					// 			},
-					// 		},
-					// 	},
-					// }
-					// _, err := app.firebase.Send(ctx, msg)
-
-					// if err != nil {
-					// 	log.Printf("Failed to send notification to token %s: %v", token, err)
-					// }
+				if len(tokens) == 0 {
+					continue
 				}
+				numBatches := len(tokens) / app.config.notifications.silentNotificationBatchSize
+
+				go func() {
+					for i := 0; i < numBatches; i++ {
+						var messages []*messaging.Message
+						for j := 0; j < app.config.notifications.silentNotificationBatchSize; j++ {
+							index := i*app.config.notifications.silentNotificationBatchSize + j
+							if index >= len(tokens) {
+								break
+							}
+							token := tokens[index]
+
+							messages = append(messages, app.GetSilentMessage(ctx, token))
+						}
+
+						batchResponse, err := app.firebase.SendEach(ctx, messages)
+						if err != nil {
+							log.Printf("Batch %d failed: %v", i, err)
+						} else {
+							log.Printf("Batch %d: Success %d, Failure %d", i, batchResponse.SuccessCount, batchResponse.FailureCount)
+						}
+
+						for idx, resp := range batchResponse.Responses {
+							if !resp.Success {
+								if messaging.IsUnregistered(resp.Error) {
+									if err := app.storage.DeviceStorage.DeleteFCMToken(messages[idx].Token); err != nil {
+										log.Printf("Token %v is not valid, but couldn't be deleted, error: %v \n", messages[idx].Token, err)
+									}
+								}
+							}
+						}
+						time.Sleep(app.config.notifications.silentNotificationTimer / time.Duration(numBatches))
+					}
+
+				}()
 			default:
 				_ = 1
 			}
 		}
 	}()
+}
+
+func (app *Application) GetSilentMessage(ctx context.Context, token string) *messaging.Message {
+	msg := &messaging.Message{
+		Token: token,
+		Data: map[string]string{
+			"type":       "sync",
+			"request_id": "123"},
+		Android: &messaging.AndroidConfig{
+			Priority: "high",
+		},
+		APNS: &messaging.APNSConfig{
+			Payload: &messaging.APNSPayload{
+				Aps: &messaging.Aps{
+					ContentAvailable: true,
+				},
+			},
+		},
+	}
+	return msg
 }
