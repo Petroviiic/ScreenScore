@@ -185,7 +185,7 @@ func (app *Application) run(router http.Handler) error {
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+	log.Printf("starting server at %s", app.config.addr)
 
-	log.Printf("server started at %s", app.config.addr)
 	return srv.ListenAndServe()
 }
