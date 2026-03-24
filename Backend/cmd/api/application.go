@@ -144,11 +144,17 @@ func (app *Application) mount() http.Handler {
 		})
 
 		r.Route("/notifications", func(r chi.Router) {
-			r.Use(app.TokenAuthMiddleware)
+			r.Group(func(r chi.Router) {
+				r.Post("/sendtestsilent/{token}", app.sendTestNotification)
+			})
 
-			r.Use(app.RatelimiterMiddleware(app.rateLimiters.apiFixedWindow, true)) //mzd da ovaj custom ne ide na auth ali aj vidjecu
-			r.Post("/send_custom", app.SendCustomNotification)
-			r.Post("/send_preset", app.SendPresetNotification)
+			r.Group(func(r chi.Router) {
+				r.Use(app.TokenAuthMiddleware)
+
+				r.Use(app.RatelimiterMiddleware(app.rateLimiters.apiFixedWindow, true)) //mzd da ovaj custom ne ide na auth ali aj vidjecu
+				r.Post("/send_custom", app.SendCustomNotification)
+				r.Post("/send_preset", app.SendPresetNotification)
+			})
 		})
 	})
 
