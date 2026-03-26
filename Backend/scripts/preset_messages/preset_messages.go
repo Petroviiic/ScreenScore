@@ -24,7 +24,7 @@ const (
 	CategoryLegendary MessageCategory = "legendary"
 )
 
-func Seed() {
+func Seed() error {
 	type dbConfig struct {
 		maxOpenConns int
 		maxIdleConns int
@@ -40,7 +40,7 @@ func Seed() {
 	db, err := db.NewDb(cfg.dbAddr, cfg.maxIdleConns, cfg.maxOpenConns, cfg.maxIdleTime)
 	if err != nil {
 		log.Panic("error connecting to db")
-		return
+		return err
 	}
 
 	storage := storage.NewStorage(db)
@@ -88,4 +88,6 @@ func Seed() {
 			log.Panicf("error inserting new preset message, %v", err)
 		}
 	}
+
+	return nil
 }
