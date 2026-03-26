@@ -38,14 +38,18 @@ type Storage struct {
 		UpdateLastSeen(ctx context.Context, userId int64, deviceId string) error
 		DeleteFCMToken(string) error
 	}
+	MessageStorage interface {
+		InsertNewPresetMessage(ctx context.Context, text string, price int, rarity string, isActive bool) error
+	}
 }
 
 func NewStorage(db *sql.DB) *Storage {
 	return &Storage{
-		UserStorage:   &UserStorage{db},
-		StatsStorage:  &StatsStorage{db},
-		GroupStorage:  &GroupStorage{db},
-		DeviceStorage: &DeviceStorage{db},
+		UserStorage:    &UserStorage{db},
+		StatsStorage:   &StatsStorage{db},
+		GroupStorage:   &GroupStorage{db},
+		DeviceStorage:  &DeviceStorage{db},
+		MessageStorage: &PresetMessageStorage{db},
 	}
 }
 
