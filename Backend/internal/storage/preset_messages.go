@@ -3,10 +3,18 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 type PresetMessageStorage struct {
 	db *sql.DB
+}
+type PresetMessage struct {
+	ID        int64     `json:"id"`
+	Price     int       `json:"price"`
+	Rarity    string    `json:"rarity"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (m *PresetMessageStorage) InsertNewPresetMessage(ctx context.Context, text string, price int, rarity string, isActive bool) error {
