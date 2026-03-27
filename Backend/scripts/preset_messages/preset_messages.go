@@ -81,13 +81,22 @@ func Seed() error {
 	}
 
 	ctx := context.Background()
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
 	for _, msg := range msgs {
-		err := storage.MessageStorage.InsertNewPresetMessage(ctx, msg.Text, msg.Price, msg.Rarity, msg.IsActive)
+		err := storage.MessageStorage.InsertNewPresetMessage(ctx, tx, msg.Text, msg.Price, msg.Rarity, msg.IsActive)
 
 		if err != nil {
-			log.Panicf("error inserting new preset message, %v", err)
+			return err
 		}
 	}
 
-	return nil
+	return tx.Commit()
 }

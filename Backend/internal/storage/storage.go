@@ -39,7 +39,7 @@ type Storage struct {
 		DeleteFCMToken(string) error
 	}
 	MessageStorage interface {
-		InsertNewPresetMessage(ctx context.Context, text string, price int, rarity string, isActive bool) error
+		InsertNewPresetMessage(ctx context.Context, tx *sql.Tx, text string, price int, rarity string, isActive bool) error
 	}
 }
 

@@ -17,28 +17,30 @@ type PresetMessage struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func (m *PresetMessageStorage) InsertNewPresetMessage(ctx context.Context, text string, price int, rarity string, isActive bool) error {
-	query := `
-				INSERT INTO preset_messages (message, price, rarity, is_active)
-				VALUES ($1, $2, $3, $4)
-				ON CONFLICT (message) 
-				DO UPDATE SET 
-					price = EXCLUDED.price,
-					rarity = EXCLUDED.rarity,
-					is_active = EXCLUDED.is_active;;
-			`
+func (m *PresetMessageStorage) InsertNewPresetMessage(ctx context.Context, tx *sql.Tx, text string, price int, rarity string, isActive bool) error {
+	return func() error {
+		query := `
+					INSERT INTO preset_messages (message, price, rarity, is_active)
+					VALUES ($1, $2, $3, $4)
+					ON CONFLICT (message) 
+					DO UPDATE SET 
+						price = EXCLUDED.price,
+						rarity = EXCLUDED.rarity,
+						is_active = EXCLUDED.is_active;;
+				`
 
-	_, err := m.db.ExecContext(
-		ctx,
-		query,
-		text,
-		price,
-		rarity,
-		isActive,
-	)
+		_, err := tx.ExecContext(
+			ctx,
+			query,
+			text,
+			price,
+			rarity,
+			isActive,
+		)
 
-	if err != nil {
-		return err
-	}
-	return nil
+		if err != nil {
+			return err
+		}
+		return nil
+	}()
 }
