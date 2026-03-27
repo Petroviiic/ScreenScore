@@ -46,6 +46,7 @@ definitions:
       groupID:
         type: string
       messageId:
+        format: int64
         type: integer
     type: object
   main.UserPayload:
@@ -244,6 +245,32 @@ paths:
       summary: Health check
       tags:
       - utils
+  /notifications/get_users_owned:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of messages
+          schema:
+            type: string
+        "403":
+          description: Forbidden access
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Retrives a list of all preset messages user can buy
+      tags:
+      - notifications
   /notifications/send_custom:
     post:
       consumes:
