@@ -54,3 +54,20 @@ func NewStorage(db *sql.DB) *Storage {
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789"
+
+func NewTx(ctx context.Context, db *sql.DB, function func(*sql.Tx) error) error {
+	tx, err := db.BeginTx(ctx, nil)
+
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	if err := function(tx); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
