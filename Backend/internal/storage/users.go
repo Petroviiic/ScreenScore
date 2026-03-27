@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/lib/pq"
@@ -123,4 +125,59 @@ func (u *UserStorage) RegisterUser(ctx context.Context, user *User) (int64, erro
 		return -1, err
 	}
 	return userId, nil
+}
+
+func (m *UserStorage) PurchaseMessage(ctx context.Context, messageId int64, userId int64) error {
+	return NewTx(ctx, m.db, func(tx *sql.Tx) error {
+		msg, err := getMessageInfo(ctx, tx, messageId)
+		if err != nil || msg == nil {
+			return err
+		}
+
+		points, err := getUserPoints(ctx, tx, userId)
+		if err != nil {
+			return err
+		}
+
+		if msg.Price > points {
+			return fmt.Errorf("not enough points to purchase")
+		}
+
+		if err := removePoints(ctx, tx, userId, msg.Price); err != nil {
+			return err
+		}
+
+		log.Println("successfully purchased messages")
+		return nil
+	})
+}
+
+func getMessageInfo(ctx context.Context, tx *sql.Tx, messageId int64) (*PresetMessage, error) {
+	query := `SELECT id, price, rarity, is_active, created_at FROM preset_messages WHERE id = $1;`
+
+	var msg PresetMessage
+	err := tx.QueryRowContext(
+		ctx,
+		query,
+		messageId,
+	).Scan(
+		&msg.ID,
+		&msg.Price,
+		&msg.Rarity,
+		&msg.IsActive,
+		&msg.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+func getUserPoints(ctx context.Context, tx *sql.Tx, userId int64) (int, error) {
+
+	return 0, nil
+}
+
+func removePoints(ctx context.Context, tx *sql.Tx, userId int64, points int) error {
+
+	return nil
 }
