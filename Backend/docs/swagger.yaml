@@ -245,7 +245,7 @@ paths:
       summary: Health check
       tags:
       - utils
-  /notifications/get_users_owned:
+  /notifications/get_available_shop:
     get:
       produces:
       - application/json
@@ -269,6 +269,72 @@ paths:
       security:
       - BearerAuth: []
       summary: Retrives a list of all preset messages user can buy
+      tags:
+      - notifications
+  /notifications/get_users_owned:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of messages
+          schema:
+            type: string
+        "403":
+          description: Forbidden access
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Retrives a list of all preset messages user owns
+      tags:
+      - notifications
+  /notifications/purchase/{messageID}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Group id (URL parameter)
+        in: path
+        name: messageID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Purchased
+          schema:
+            type: string
+        "400":
+          description: Bad request payload
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden access
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Purchase message from the shop
       tags:
       - notifications
   /notifications/send_custom:
