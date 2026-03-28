@@ -101,9 +101,20 @@ func (app *Application) SendPresetNotification(w http.ResponseWriter, r *http.Re
 		app.internalServerErrorJson(w, r, err)
 		return
 	}
-
-	//TODO add msg price
-	//if err := app.storage.UserStorage.
+	fmt.Println(members, userID)
+	points, err := app.storage.UserStorage.GetPoints(ctx, userID)
+	if err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+	if points < app.config.notifications.presetNotificationSendingCost {
+		app.customErrorJson(w, r, storage.ERROR_NOT_ENOUGH_POINTS_FUNDS, http.StatusBadRequest)
+		return
+	}
+	if err := app.storage.UserStorage.SpendPoints(ctx, userID, app.config.notifications.presetNotificationSendingCost); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
 	for _, val := range members {
 		app.notificationChan <- NotificationTask{
 			UserID: int64(val),
@@ -192,7 +203,7 @@ func (app *Application) PurchaseMessage(w http.ResponseWriter, r *http.Request) 
 		if errors.Is(err, storage.ERROR_ALREADY_OWN_MESSAGE) {
 			app.customErrorJson(w, r, err, http.StatusBadRequest)
 			return
-		} else if errors.Is(err, storage.ERROR_NOT_ENOUGH_POINTS_TO_PURCHASE) {
+		} else if errors.Is(err, storage.ERROR_NOT_ENOUGH_POINTS_FUNDS) {
 			app.customErrorJson(w, r, err, http.StatusBadRequest)
 			return
 		}
