@@ -45,8 +45,9 @@ type Config struct {
 }
 
 type notificationsConfig struct {
-	silentNotificationTimer     time.Duration
-	silentNotificationBatchSize int
+	silentNotificationTimer       time.Duration
+	silentNotificationBatchSize   int
+	presetNotificationSendingCost int
 }
 type rateLimiterConfig struct {
 	authFixedWindow fixedWindowLimiterConfig

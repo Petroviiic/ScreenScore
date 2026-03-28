@@ -59,6 +59,7 @@ func main() {
 			silentNotificationBatchSize: 100,
 			// silentNotificationTimer:     3 * time.Second,
 			// silentNotificationBatchSize: 2,
+			presetNotificationSendingCost: 5,
 		},
 	}
 
