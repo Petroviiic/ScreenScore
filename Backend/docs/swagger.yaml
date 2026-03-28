@@ -140,6 +140,24 @@ paths:
       summary: Create new group
       tags:
       - groups
+  /groups/get_user_groups:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Retrieves groups the user is a member of
+      tags:
+      - groups
   /groups/join/{inviteCode}:
     post:
       consumes:
