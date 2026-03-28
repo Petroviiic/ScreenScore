@@ -142,6 +142,7 @@ func (app *Application) mount() http.Handler {
 			r.Post("/join/{inviteCode}", app.JoinGroup)
 			r.Post("/leave/{groupId}", app.LeaveGroup)
 			r.Post("/kick", app.KickUser)
+			r.Get("/get_user_groups", app.GetUserGroups)
 		})
 
 		r.Route("/notifications", func(r chi.Router) {

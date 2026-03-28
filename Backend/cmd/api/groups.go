@@ -163,3 +163,27 @@ func (app *Application) KickUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// GetUserGroups godoc
+// @Summary      Retrieves groups the user is a member of
+// @Tags         groups
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200
+// @Failure      500        {object}  map[string]string "Internal server error"
+// @Router       /groups/get_user_groups	[get]
+func (app *Application) GetUserGroups(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserFromContext(r)
+
+	groups, err := app.storage.GroupStorage.GetUserGroups(r.Context(), userID)
+
+	if err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+
+	if err := jsonResponse(w, http.StatusOK, groups); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+}

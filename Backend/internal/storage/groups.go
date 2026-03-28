@@ -14,6 +14,13 @@ type GroupStorage struct {
 	db *sql.DB
 }
 
+type Group struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	InviteCode string `json:"invite_code"`
+	CreatedAt  string `json:"created_at"`
+}
+
 func (g *GroupStorage) CheckIfMember(ctx context.Context, userId int64, groupId string) bool {
 	query := `	SELECT EXISTS (
 					SELECT 1 FROM group_members 
@@ -155,4 +162,40 @@ func (g *GroupStorage) GetGroupMembersExclusive(ctx context.Context, groupId str
 
 	return ids, nil
 
+}
+
+func (g *GroupStorage) GetUserGroups(ctx context.Context, userID int64) ([]*Group, error) {
+	query := `
+			SELECT g.id, g.name, g.invite_code, g.created_at FROM group_members AS gm
+			JOIN groups AS g ON g.id = gm.group_id
+			WHERE gm.user_id = $1;	
+	`
+
+	rows, err := g.db.QueryContext(
+		ctx,
+		query,
+		userID,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var groups []*Group
+	for rows.Next() {
+		group := &Group{}
+		err := rows.Scan(
+			&group.ID,
+			&group.Name,
+			&group.InviteCode,
+			&group.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		groups = append(groups, group)
+	}
+
+	return groups, nil
 }
