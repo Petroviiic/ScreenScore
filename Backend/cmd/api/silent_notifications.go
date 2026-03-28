@@ -77,6 +77,7 @@ func (app *Application) StartSilentNotificationWorker() {
 					break
 				}
 				if len(tokens) == 0 {
+					log.Println("no tokens found, waiting for next sync")
 					continue
 				}
 				numBatches := len(tokens) / app.config.notifications.silentNotificationBatchSize
@@ -87,6 +88,7 @@ func (app *Application) StartSilentNotificationWorker() {
 						for j := 0; j < app.config.notifications.silentNotificationBatchSize; j++ {
 							index := i*app.config.notifications.silentNotificationBatchSize + j
 							if index >= len(tokens) {
+								log.Println("index > len(tokens), breaking")
 								break
 							}
 							token := tokens[index]
@@ -103,6 +105,7 @@ func (app *Application) StartSilentNotificationWorker() {
 
 						for idx, resp := range batchResponse.Responses {
 							if !resp.Success {
+								log.Println("!resp success, ", idx)
 								if messaging.IsUnregistered(resp.Error) {
 									if err := app.storage.DeviceStorage.DeleteFCMToken(messages[idx].Token); err != nil {
 										log.Printf("Token %v is not valid, but couldn't be deleted, error: %v \n", messages[idx].Token, err)
