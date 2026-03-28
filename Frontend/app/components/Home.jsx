@@ -18,6 +18,11 @@ const { ScreenTimeModule } = NativeModules;
 import { styles, rankColor } from "@/assets/styles/home.styles";
 const { width } = Dimensions.get("window");
 import * as SecureStore from "expo-secure-store";
+import {
+  getMessaging,
+  onMessage,
+  setBackgroundMessageHandler,
+} from "@react-native-firebase/messaging";
 const API_URL = "https://shenika-ovarian-unpiratically.ngrok-free.dev";
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DAY_FULL = [
@@ -201,6 +206,19 @@ export default function Home() {
       }
     });
     return () => sub.remove();
+  }, []);
+
+  // sync request se salje kada je aplikacija upaljena
+  const messagingInstance = getMessaging();
+  useEffect(() => {
+    const unsubscribe = onMessage(messagingInstance, async (remoteMessage) => {
+      if (remoteMessage.data?.type === "sync") {
+        const stats = await ScreenTimeModule.getWeeklyStats();
+        if (!stats) return;
+        await syncToBackend(stats);
+      }
+    });
+    return unsubscribe;
   }, []);
 
   // ── Derived values ──────────────────────────────────────────────────────────
