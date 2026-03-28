@@ -136,7 +136,7 @@ func (app *Application) SyncStats(w http.ResponseWriter, r *http.Request) {
 			app.badRequestResponse(w, r, fmt.Errorf("new screen time cannot be lower than the previous record"))
 			return
 		}
-		if stats.ScreenTime-lastRecord.ScreenTime > int32(currentRecordTime.Sub(lastRecord.RecordedAt).Minutes()) {
+		if stats.ScreenTime-lastRecord.ScreenTime > int32(currentRecordTime.Sub(lastRecord.RecordedAt).Minutes())+2 {
 			app.badRequestResponse(w, r, fmt.Errorf("screen time increase exceeds elapsed real time"))
 			return
 		}

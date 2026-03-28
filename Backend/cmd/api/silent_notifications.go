@@ -80,7 +80,7 @@ func (app *Application) StartSilentNotificationWorker() {
 					log.Println("no tokens found, waiting for next sync")
 					continue
 				}
-				numBatches := len(tokens) / app.config.notifications.silentNotificationBatchSize
+				numBatches := (len(tokens) + app.config.notifications.silentNotificationBatchSize - 1) / app.config.notifications.silentNotificationBatchSize
 
 				go func() {
 					for i := 0; i < numBatches; i++ {
