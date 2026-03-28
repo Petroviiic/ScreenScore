@@ -141,10 +141,10 @@ func (m *UserStorage) PurchaseMessage(ctx context.Context, messageId int64, user
 		}
 
 		if msg.Price > points {
-			return ERROR_NOT_ENOUGH_POINTS_TO_PURCHASE
+			return ERROR_NOT_ENOUGH_POINTS_FUNDS
 		}
 
-		if err := removePoints(ctx, tx, userId, points-msg.Price); err != nil {
+		if err := removePoints(ctx, tx, userId, msg.Price); err != nil {
 			return err
 		}
 
@@ -160,12 +160,19 @@ func (m *UserStorage) PurchaseMessage(ctx context.Context, messageId int64, user
 	})
 }
 
+func (m *UserStorage) SpendPoints(ctx context.Context, userId int64, points int) error {
+	return removePoints(ctx, m.db, userId, points)
+}
+func (m *UserStorage) GetPoints(ctx context.Context, userId int64) (int, error) {
+	return getUserPoints(ctx, m.db, userId)
+}
+
 // helper funcs
-func getMessageInfo(ctx context.Context, tx *sql.Tx, messageId int64) (*PresetMessage, error) {
+func getMessageInfo(ctx context.Context, db SQLCommon, messageId int64) (*PresetMessage, error) {
 	query := `SELECT id, price, rarity, is_active, created_at FROM preset_messages WHERE id = $1;`
 
 	var msg PresetMessage
-	err := tx.QueryRowContext(
+	err := db.QueryRowContext(
 		ctx,
 		query,
 		messageId,
@@ -181,13 +188,13 @@ func getMessageInfo(ctx context.Context, tx *sql.Tx, messageId int64) (*PresetMe
 	}
 	return &msg, nil
 }
-func getUserPoints(ctx context.Context, tx *sql.Tx, userId int64) (int, error) {
+func getUserPoints(ctx context.Context, db SQLCommon, userId int64) (int, error) {
 	query := `
 			SELECT points FROM users WHERE id = $1
 			`
 
 	points := -1
-	err := tx.QueryRowContext(
+	err := db.QueryRowContext(
 		ctx,
 		query,
 		userId,
@@ -200,10 +207,10 @@ func getUserPoints(ctx context.Context, tx *sql.Tx, userId int64) (int, error) {
 	return points, nil
 }
 
-func removePoints(ctx context.Context, tx *sql.Tx, userId int64, points int) error {
-	query := `UPDATE users SET points = $1 WHERE id = $2;`
+func removePoints(ctx context.Context, db SQLCommon, userId int64, points int) error {
+	query := `UPDATE users SET points = points - $1 WHERE id = $2;`
 
-	_, err := tx.ExecContext(
+	_, err := db.ExecContext(
 		ctx,
 		query,
 		points,

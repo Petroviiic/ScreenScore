@@ -8,11 +8,17 @@ import (
 )
 
 var (
-	ERROR_NO_ROWS_AFFECTED              = errors.New("no rows affected")
-	ERROR_DUPLICATE_KEY_VALUE           = errors.New("record already exists")
-	ERROR_NOT_ENOUGH_POINTS_TO_PURCHASE = errors.New("not enough points to purchase")
-	ERROR_ALREADY_OWN_MESSAGE           = errors.New("you already own the message")
+	ERROR_NO_ROWS_AFFECTED        = errors.New("no rows affected")
+	ERROR_DUPLICATE_KEY_VALUE     = errors.New("record already exists")
+	ERROR_NOT_ENOUGH_POINTS_FUNDS = errors.New("not enough funds")
+	ERROR_ALREADY_OWN_MESSAGE     = errors.New("you already own the message")
 )
+
+type SQLCommon interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
 
 type Storage struct {
 	UserStorage interface {
@@ -20,6 +26,8 @@ type Storage struct {
 		GetByUsername(ctx context.Context, username string) (*User, error)
 		RegisterUser(ctx context.Context, user *User) (int64, error)
 		PurchaseMessage(ctx context.Context, messageId int64, userId int64) error
+		SpendPoints(ctx context.Context, userId int64, points int) error
+		GetPoints(ctx context.Context, userId int64) (int, error)
 	}
 	StatsStorage interface {
 		GetUsersLast(context.Context, int64, string) (*UsageRecord, error)
