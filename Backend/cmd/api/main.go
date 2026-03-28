@@ -55,10 +55,10 @@ func main() {
 			},
 		},
 		notifications: notificationsConfig{
-			// silentNotificationTimer: 30 * time.Minute,
-			// silentNotificationBatchSize: 100,
-			silentNotificationTimer:     3 * time.Second,
-			silentNotificationBatchSize: 2,
+			silentNotificationTimer:     30 * time.Minute,
+			silentNotificationBatchSize: 100,
+			// silentNotificationTimer:     3 * time.Second,
+			// silentNotificationBatchSize: 2,
 		},
 	}
 
