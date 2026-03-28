@@ -154,6 +154,10 @@ func (app *Application) mount() http.Handler {
 				r.Use(app.RatelimiterMiddleware(app.rateLimiters.apiFixedWindow, true)) //mzd da ovaj custom ne ide na auth ali aj vidjecu
 				r.Post("/send_custom", app.SendCustomNotification)
 				r.Post("/send_preset", app.SendPresetNotification)
+
+				r.Get("/get_users_owned", app.GetOwnedMessages)
+				r.Get("/get_available_shop", app.GetAvailableMessagesInShop)
+				r.Post("/purchase/{messageID}", app.PurchaseMessage)
 			})
 		})
 	})

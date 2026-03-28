@@ -2,20 +2,16 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"firebase.google.com/go/v4/messaging"
+	"github.com/Petroviiic/ScreenScore/internal/storage"
+	"github.com/go-chi/chi/v5"
 )
-
-var PresetMessages = map[int]string{
-	1: "Touch some grass!",
-	2: "Put the phone down!",
-	3: "Go take a nap, screen addict!",
-	4: "Is TikTok that interesting?",
-	5: "Eyes up, phone down!",
-}
 
 type Notification struct {
 	ToUserID int64  `json:"to_user_id" validate:"required"`
@@ -55,7 +51,7 @@ func (app *Application) SendCustomNotification(w http.ResponseWriter, r *http.Re
 
 type PresetNotification struct {
 	GroupID   string
-	MessageId int
+	MessageId int64
 }
 
 // SendPresetNotification godoc
@@ -76,14 +72,18 @@ func (app *Application) SendPresetNotification(w http.ResponseWriter, r *http.Re
 		app.badRequestResponse(w, r, err)
 		return
 	}
-	msg, ok := PresetMessages[payload.MessageId]
-	if !ok {
-		app.badRequestResponse(w, r, fmt.Errorf("preset message %d not found", payload.MessageId))
-		return
-	}
 
 	ctx := r.Context()
 	userID := GetUserFromContext(r)
+	msg, err := app.storage.MessageStorage.GetPresetMessage(ctx, userID, payload.MessageId)
+	if err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+	if msg == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("preset message %d not found", payload.MessageId))
+		return
+	}
 
 	if !app.storage.GroupStorage.CheckIfMember(ctx, userID, payload.GroupID) {
 		log.Printf("user with id: %d is not a member of group with id: %s", userID, payload.GroupID)
@@ -101,6 +101,9 @@ func (app *Application) SendPresetNotification(w http.ResponseWriter, r *http.Re
 		app.internalServerErrorJson(w, r, err)
 		return
 	}
+
+	//TODO add msg price
+
 	for _, val := range members {
 		app.notificationChan <- NotificationTask{
 			UserID: int64(val),
@@ -110,6 +113,94 @@ func (app *Application) SendPresetNotification(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := jsonResponse(w, http.StatusOK, nil); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+}
+
+// GetOwnedMessages godoc
+// @Summary      Retrives a list of all preset messages user owns
+// @Tags         notifications
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200      {string}  string            "List of messages"
+// @Failure      500      {object}  map[string]string "Internal server error"
+// @Failure      403      {object}  map[string]string "Forbidden access"
+// @Router       /notifications/get_users_owned [get]
+func (app *Application) GetOwnedMessages(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserFromContext(r)
+	msgs, err := app.storage.MessageStorage.GetOwnedPresetMessage(r.Context(), userID)
+
+	if err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+
+	if err := jsonResponse(w, http.StatusOK, msgs); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+}
+
+// GetAvailableMessagesInShop godoc
+// @Summary      Retrives a list of all preset messages user can buy
+// @Tags         notifications
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200      {string}  string            "List of messages"
+// @Failure      500      {object}  map[string]string "Internal server error"
+// @Failure      403      {object}  map[string]string "Forbidden access"
+// @Router       /notifications/get_available_shop [get]
+func (app *Application) GetAvailableMessagesInShop(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserFromContext(r)
+	msgs, err := app.storage.MessageStorage.GetAvaiableInShop(r.Context(), userID)
+
+	if err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+
+	if err := jsonResponse(w, http.StatusOK, msgs); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+}
+
+// PurchaseMessage godoc
+// @Summary      Purchase message from the shop
+// @Tags         notifications
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        messageID  path      string  true  "Group id (URL parameter)"
+// @Success      200      {string}  string            "Purchased"
+// @Failure      400      {object}  map[string]string "Bad request payload"
+// @Failure      500      {object}  map[string]string "Internal server error"
+// @Failure      403      {object}  map[string]string "Forbidden access"
+// @Router       /notifications/purchase/{messageID} [post]
+func (app *Application) PurchaseMessage(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserFromContext(r)
+	msgIDstr := chi.URLParam(r, "messageID")
+
+	msgID, err := strconv.ParseInt(msgIDstr, 10, 64)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if err := app.storage.UserStorage.PurchaseMessage(r.Context(), msgID, userID); err != nil {
+		if errors.Is(err, storage.ERROR_ALREADY_OWN_MESSAGE) {
+			app.customErrorJson(w, r, err, http.StatusBadRequest)
+			return
+		} else if errors.Is(err, storage.ERROR_NOT_ENOUGH_POINTS_TO_PURCHASE) {
+			app.customErrorJson(w, r, err, http.StatusBadRequest)
+			return
+		}
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+
+	if err := jsonResponse(w, http.StatusOK, "Successfully purchased!"); err != nil {
 		app.internalServerErrorJson(w, r, err)
 		return
 	}
