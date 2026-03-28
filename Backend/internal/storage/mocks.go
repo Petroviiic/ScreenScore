@@ -7,7 +7,8 @@ import (
 
 func NewMockStorage() *Storage {
 	return &Storage{
-		StatsStorage: &StatsMockStorage{},
+		StatsStorage:  &StatsMockStorage{},
+		DeviceStorage: &DeviceMockStorage{},
 	}
 }
 
@@ -24,3 +25,20 @@ func (s *StatsMockStorage) AddNewRecord(context.Context, int64, int32, string, t
 func (s *StatsMockStorage) GetGroupStats(context.Context, string, time.Time) ([]*GroupStats, error) {
 	return nil, nil
 }
+
+type DeviceMockStorage struct {
+}
+
+func (d *DeviceMockStorage) Update(ctx context.Context, userId int64, deviceId string, pushToken string) error {
+	return nil
+}
+func (d *DeviceMockStorage) GetFCMTokens(context.Context, int64) ([]string, error) {
+	return []string{}, nil
+}
+func (d *DeviceMockStorage) RequestDeviceSync(context.Context, int) ([]string, error) {
+	return []string{}, nil
+}
+func (d *DeviceMockStorage) UpdateLastSeen(ctx context.Context, userId int64, deviceId string) error {
+	return nil
+}
+func (d *DeviceMockStorage) DeleteFCMToken(string) error { return nil }
