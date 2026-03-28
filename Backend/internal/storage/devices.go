@@ -84,16 +84,16 @@ func (d *DeviceStorage) GetFCMTokens(ctx context.Context, userId int64) ([]strin
 func (d *DeviceStorage) RequestDeviceSync(ctx context.Context, batchSize int) ([]string, error) {
 	query := `
 		SELECT DISTINCT ud.push_token
-		FROM user_devices AS ud
-		WHERE ud.last_seen > NOW() - INTERVAL '7 days' 
-		AND ud.push_token IS NOT NULL
-		AND ud.push_token != ''
-		AND ud.user_id IN (
-			SELECT user_id 
-			FROM screen_time_logs 
-			GROUP BY user_id 
-			HAVING MAX(recorded_at) < NOW() - INTERVAL '1 hour'
-		);
+        FROM user_devices AS ud
+        WHERE ud.last_seen > NOW() - INTERVAL '7 days' 
+        AND ud.push_token IS NOT NULL
+        AND ud.push_token != ''
+        AND NOT EXISTS (
+              SELECT 1 
+              FROM screen_time_logs AS stl 
+              WHERE stl.user_id = ud.user_id 
+                AND stl.recorded_at > NOW() - INTERVAL '1 hour'
+          );
 	`
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
