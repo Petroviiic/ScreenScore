@@ -208,7 +208,7 @@ export default function Home() {
     return () => sub.remove();
   }, []);
 
-  // sync request se salje kada je aplikacija upaljena
+  /*// sync request se salje kada je aplikacija upaljena
   const messagingInstance = getMessaging();
   useEffect(() => {
     const unsubscribe = onMessage(messagingInstance, async (remoteMessage) => {
@@ -219,7 +219,7 @@ export default function Home() {
       }
     });
     return unsubscribe;
-  }, []);
+  }, []);*/
 
   // ── Derived values ──────────────────────────────────────────────────────────
   const maxMs = Math.max(...weekData.map((d) => d.totalMs), 1);
