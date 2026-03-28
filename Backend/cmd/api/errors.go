@@ -5,6 +5,10 @@ import (
 	"net/http"
 )
 
+func (app *Application) customErrorJson(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
+	log.Printf("error, method %s, path %s, error %s", r.Method, r.URL.Path, err.Error())
+	writeJsonError(w, statusCode, err.Error())
+}
 func (app *Application) internalServerErrorJson(w http.ResponseWriter, r *http.Request, err error) {
 	log.Printf("internal server error, method %s, path %s, error %s", r.Method, r.URL.Path, err.Error())
 	writeJsonError(w, http.StatusInternalServerError, "the server encountered a problem")
