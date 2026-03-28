@@ -600,61 +600,340 @@ export const registerStyles = StyleSheet.create({
   },
 });
 
-// Groups styles
-
 export const groupsStyles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: "#0F0F14",
   },
-  scroll: {
-    padding: 20,
-    paddingBottom: 40,
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 56,
+    paddingBottom: 16,
+    backgroundColor: "#0F0F14",
   },
-  pageTitle: {
+  headerTitle: {
     fontSize: 28,
     fontWeight: "700",
     color: "#fff",
-    marginBottom: 24,
-    marginTop: 12,
+    letterSpacing: -0.5,
   },
-  section: {
+  headerActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  headerBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     backgroundColor: "#1A1A24",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#888",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 12,
-  },
-  input: {
-    backgroundColor: "#0F0F14",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: "#fff",
-    fontSize: 15,
     borderWidth: 1,
     borderColor: "#2A2A38",
   },
-  btn: {
+  headerBtnPrimary: {
     backgroundColor: "#7C6EF5",
-    borderRadius: 10,
-    paddingVertical: 13,
+    borderColor: "#7C6EF5",
+  },
+  headerBtnText: {
+    color: "#aaa",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  // Scroll
+  scroll: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  scrollCenter: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
   },
-  btnDanger: {
-    backgroundColor: "#E05555",
+
+  // Empty state
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: 48,
+    paddingHorizontal: 32,
   },
-  btnText: {
+  emptyIcon: {
+    fontSize: 52,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 28,
+  },
+  emptyActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  emptyBtn: {
+    backgroundColor: "#7C6EF5",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyBtnOutline: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#7C6EF5",
+  },
+  emptyBtnText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 15,
+    fontSize: 14,
+  },
+
+  // Group card
+  groupCard: {
+    backgroundColor: "#1A1A24",
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#252532",
+  },
+  groupCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+  },
+  groupIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#7C6EF520",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  groupIconText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#7C6EF5",
+  },
+  groupHeaderInfo: {
+    flex: 1,
+  },
+  groupName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 2,
+  },
+  groupMeta: {
+    fontSize: 13,
+    color: "#666",
+  },
+  chevron: {
+    fontSize: 22,
+    color: "#555",
+    transform: [{ rotate: "0deg" }],
+  },
+  chevronOpen: {
+    transform: [{ rotate: "90deg" }],
+  },
+
+  // Invite code
+  inviteRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#13131C",
+    marginHorizontal: 12,
+    marginBottom: 4,
+    borderRadius: 10,
+  },
+  inviteLabel: {
+    fontSize: 12,
+    color: "#555",
+    marginRight: 8,
+    fontWeight: "500",
+  },
+  inviteCode: {
+    flex: 1,
+    fontSize: 13,
+    color: "#7C6EF5",
+    fontWeight: "600",
+    letterSpacing: 1,
+    fontFamily: "monospace",
+  },
+  inviteCopy: {
+    fontSize: 11,
+    color: "#444",
+  },
+
+  // Members
+  membersDivider: {
+    height: 1,
+    backgroundColor: "#252532",
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  membersList: {
+    paddingBottom: 4,
+  },
+  memberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  memberAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#252532",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  memberAvatarText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#aaa",
+  },
+  memberInfo: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  memberName: {
+    fontSize: 14,
+    color: "#ddd",
+    fontWeight: "500",
+  },
+  ownerBadge: {
+    backgroundColor: "#7C6EF520",
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  meBadge: {
+    backgroundColor: "#00E5A020",
+  },
+  ownerBadgeText: {
+    fontSize: 10,
+    color: "#7C6EF5",
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  kickBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#E0555520",
+    borderWidth: 1,
+    borderColor: "#E0555540",
+  },
+  kickBtnText: {
+    fontSize: 12,
+    color: "#E05555",
+    fontWeight: "600",
+  },
+
+  // Leave button
+  leaveBtn: {
+    margin: 12,
+    marginTop: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#E0555510",
+    borderWidth: 1,
+    borderColor: "#E0555530",
+    alignItems: "center",
+  },
+  leaveBtnText: {
+    fontSize: 14,
+    color: "#E05555",
+    fontWeight: "600",
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "#000000cc",
+    justifyContent: "flex-end",
+  },
+  modalBox: {
+    backgroundColor: "#1A1A24",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+    borderTopWidth: 1,
+    borderColor: "#2A2A38",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  modalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#252532",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCloseText: {
+    fontSize: 14,
+    color: "#888",
+  },
+  modalInput: {
+    backgroundColor: "#0F0F14",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: "#fff",
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: "#2A2A38",
+    marginBottom: 14,
+  },
+  modalBtn: {
+    backgroundColor: "#7C6EF5",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  modalBtnDanger: {
+    backgroundColor: "#E05555",
+  },
+  modalBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });
