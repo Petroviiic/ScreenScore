@@ -103,7 +103,7 @@ func (app *Application) SendPresetNotification(w http.ResponseWriter, r *http.Re
 	}
 
 	//TODO add msg price
-
+	//if err := app.storage.UserStorage.
 	for _, val := range members {
 		app.notificationChan <- NotificationTask{
 			UserID: int64(val),
