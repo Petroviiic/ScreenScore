@@ -8,8 +8,10 @@ import (
 )
 
 var (
-	ERROR_NO_ROWS_AFFECTED    = errors.New("no rows affected")
-	ERROR_DUPLICATE_KEY_VALUE = errors.New("record already exists")
+	ERROR_NO_ROWS_AFFECTED              = errors.New("no rows affected")
+	ERROR_DUPLICATE_KEY_VALUE           = errors.New("record already exists")
+	ERROR_NOT_ENOUGH_POINTS_TO_PURCHASE = errors.New("not enough points to purchase")
+	ERROR_ALREADY_OWN_MESSAGE           = errors.New("you already own the message")
 )
 
 type Storage struct {
@@ -17,6 +19,7 @@ type Storage struct {
 		GetById(context.Context, int64) (*User, error)
 		GetByUsername(ctx context.Context, username string) (*User, error)
 		RegisterUser(ctx context.Context, user *User) (int64, error)
+		PurchaseMessage(ctx context.Context, messageId int64, userId int64) error
 	}
 	StatsStorage interface {
 		GetUsersLast(context.Context, int64, string) (*UsageRecord, error)
@@ -40,6 +43,9 @@ type Storage struct {
 	}
 	MessageStorage interface {
 		InsertNewPresetMessage(ctx context.Context, tx *sql.Tx, text string, price int, rarity string, isActive bool) error
+		GetPresetMessage(context.Context, int64, int64) (string, error)
+		GetOwnedPresetMessage(ctx context.Context, userID int64) ([]*PresetMessage, error)
+		GetAvaiableInShop(ctx context.Context, userID int64) ([]*PresetMessage, error)
 	}
 }
 
