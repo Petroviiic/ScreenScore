@@ -3,8 +3,6 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"log"
 	"time"
 
 	"github.com/lib/pq"
@@ -20,6 +18,7 @@ type User struct {
 	Email     string    `json:"email"`
 	Username  string    `json:"username"`
 	Password  password  `json:"-"`
+	Points    int       `json:"points"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -46,7 +45,7 @@ func (p *password) ValidatePassword(plain string) bool {
 	return true
 }
 func (u *UserStorage) GetByUsername(ctx context.Context, username string) (*User, error) {
-	query := `	SELECT id, email, username, password, created_at FROM users 
+	query := `	SELECT id, email, username, password, points, created_at FROM users 
 				WHERE username = $1`
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -62,6 +61,7 @@ func (u *UserStorage) GetByUsername(ctx context.Context, username string) (*User
 		&user.Email,
 		&user.Username,
 		&user.Password.Hash,
+		&user.Points,
 		&user.CreatedAt,
 	)
 	if err != nil {
@@ -72,7 +72,7 @@ func (u *UserStorage) GetByUsername(ctx context.Context, username string) (*User
 }
 
 func (u *UserStorage) GetById(ctx context.Context, userId int64) (*User, error) {
-	query := `	SELECT id, email, username, password, created_at FROM users 
+	query := `	SELECT id, email, username, password, points, created_at FROM users 
 				WHERE id = $1`
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -88,6 +88,7 @@ func (u *UserStorage) GetById(ctx context.Context, userId int64) (*User, error) 
 		&user.Email,
 		&user.Username,
 		&user.Password.Hash,
+		&user.Points,
 		&user.CreatedAt,
 	)
 	if err != nil {
@@ -140,18 +141,26 @@ func (m *UserStorage) PurchaseMessage(ctx context.Context, messageId int64, user
 		}
 
 		if msg.Price > points {
-			return fmt.Errorf("not enough points to purchase")
+			return ERROR_NOT_ENOUGH_POINTS_TO_PURCHASE
 		}
 
-		if err := removePoints(ctx, tx, userId, msg.Price); err != nil {
+		if err := removePoints(ctx, tx, userId, points-msg.Price); err != nil {
 			return err
 		}
 
-		log.Println("successfully purchased messages")
+		if err := buyPresetMessage(ctx, tx, userId, messageId); err != nil {
+			if pqErr, ok := err.(*pq.Error); ok {
+				if pqErr.Code == "23505" {
+					return ERROR_ALREADY_OWN_MESSAGE
+				}
+			}
+			return err
+		}
 		return nil
 	})
 }
 
+// helper funcs
 func getMessageInfo(ctx context.Context, tx *sql.Tx, messageId int64) (*PresetMessage, error) {
 	query := `SELECT id, price, rarity, is_active, created_at FROM preset_messages WHERE id = $1;`
 
@@ -173,11 +182,51 @@ func getMessageInfo(ctx context.Context, tx *sql.Tx, messageId int64) (*PresetMe
 	return &msg, nil
 }
 func getUserPoints(ctx context.Context, tx *sql.Tx, userId int64) (int, error) {
+	query := `
+			SELECT points FROM users WHERE id = $1
+			`
 
-	return 0, nil
+	points := -1
+	err := tx.QueryRowContext(
+		ctx,
+		query,
+		userId,
+	).Scan(
+		&points,
+	)
+	if err != nil {
+		return -1, err
+	}
+	return points, nil
 }
 
 func removePoints(ctx context.Context, tx *sql.Tx, userId int64, points int) error {
+	query := `UPDATE users SET points = $1 WHERE id = $2;`
 
+	_, err := tx.ExecContext(
+		ctx,
+		query,
+		points,
+		userId,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func buyPresetMessage(ctx context.Context, tx *sql.Tx, userId int64, msgID int64) error {
+	query := `INSERT INTO user_messages (user_id, message_id) VALUES ($1, $2);`
+
+	_, err := tx.ExecContext(
+		ctx,
+		query,
+		userId,
+		msgID,
+	)
+
+	if err != nil {
+		return err
+	}
 	return nil
 }
