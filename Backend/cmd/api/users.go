@@ -101,12 +101,12 @@ func (app *Application) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user, err := app.storage.UserStorage.GetByUsername(ctx, data.Username)
 	if err != nil {
-		app.unauthorizedBasicErrorResponse(w, r, err)
+		app.unauthorizedErrorResponse(w, r, err)
 		return
 	}
 
 	if !user.Password.ValidatePassword(data.Password) {
-		app.unauthorizedBasicErrorResponse(w, r, fmt.Errorf("unauthorized"))
+		app.unauthorizedErrorResponse(w, r, fmt.Errorf("unauthorized"))
 		return
 	}
 	if err := app.storage.DeviceStorage.Update(ctx, user.ID, data.DeviceID, data.PushNotificationToken); err != nil {
@@ -144,4 +144,6 @@ func (app *Application) Login(w http.ResponseWriter, r *http.Request) {
 // @Router       /users/validate_token [post]
 // @Success      200      {string}  string       "Valid token"
 // @Failure      401      {object}  map[string]string "Invalid token"
-func (app *Application) ValidateJWTToken(w http.ResponseWriter, r *http.Request) {}
+func (app *Application) ValidateJWTToken(w http.ResponseWriter, r *http.Request) {
+	//TODO dodaj mzd ovdje da se updateuje last seen
+}
