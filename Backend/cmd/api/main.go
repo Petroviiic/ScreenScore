@@ -27,7 +27,8 @@ func main() {
 		log.Fatalf("error loading env file: %v", err)
 	}
 	cfg := Config{
-		addr: env.GetString("ADDR", ":3000"),
+		addr:      env.GetString("ADDR", ":3000"),
+		isProdEnv: env.GetBool("IS_PROD_ENV", false),
 		dbConfig: DBConfig{
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONS", 30),
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONS", 30),
@@ -68,7 +69,6 @@ func main() {
 		log.Panic("error connecting to db")
 		return
 	}
-
 	storage := storage.NewStorage(db)
 
 	authenticator := auth.NewJWTAuthenticator(cfg.auth.secret, cfg.auth.iss, cfg.auth.iss)

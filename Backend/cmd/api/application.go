@@ -37,6 +37,7 @@ type rateLimiters struct {
 
 type Config struct {
 	addr            string
+	isProdEnv       bool
 	dbConfig        DBConfig
 	maxGroupNameLen int
 	auth            authConfig
@@ -146,6 +147,7 @@ func (app *Application) mount() http.Handler {
 		})
 
 		r.Route("/notifications", func(r chi.Router) {
+			//Remove this, this is for testing only
 			r.Group(func(r chi.Router) {
 				r.Post("/sendtestsilent/{token}", app.sendTestNotification)
 			})
@@ -161,6 +163,10 @@ func (app *Application) mount() http.Handler {
 				r.Get("/get_available_shop", app.GetAvailableMessagesInShop)
 				r.Post("/purchase/{messageID}", app.PurchaseMessage)
 			})
+		})
+
+		r.Route("/points", func(r chi.Router) {
+			r.Get("/get_group_stats", app.GetWeeklyGroupStats)
 		})
 	})
 
