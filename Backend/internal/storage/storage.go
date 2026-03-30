@@ -57,6 +57,7 @@ type Storage struct {
 		GetAvaiableInShop(ctx context.Context, userID int64) ([]*PresetMessage, error)
 	}
 	PointsLogicsStorage interface {
+		GetWeeklyGroupStats(ctx context.Context, startDate, endDate time.Time) ([]*WeeklyGroupStats, error)
 	}
 }
 

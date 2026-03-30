@@ -13,10 +13,10 @@ type WeeklyGroupStats struct {
 	GroupID                string
 	UserID                 int64
 	ScreenTime             int
-	GroupAverageScreenTime int
+	GroupAverageScreenTime float64
 }
 
-func (p *PointsLogicsStorage) GetWeeklyGroupAverage(ctx context.Context, startDate, endDate time.Time) ([]*WeeklyGroupStats, error) {
+func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, startDate, endDate time.Time) ([]*WeeklyGroupStats, error) {
 	query := `
 		WITH group_users AS (
 			SELECT user_id, group_id FROM group_members
