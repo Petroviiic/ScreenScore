@@ -56,15 +56,18 @@ type Storage struct {
 		GetOwnedPresetMessage(ctx context.Context, userID int64) ([]*PresetMessage, error)
 		GetAvaiableInShop(ctx context.Context, userID int64) ([]*PresetMessage, error)
 	}
+	PointsLogicsStorage interface {
+	}
 }
 
 func NewStorage(db *sql.DB) *Storage {
 	return &Storage{
-		UserStorage:    &UserStorage{db},
-		StatsStorage:   &StatsStorage{db},
-		GroupStorage:   &GroupStorage{db},
-		DeviceStorage:  &DeviceStorage{db},
-		MessageStorage: &PresetMessageStorage{db},
+		UserStorage:         &UserStorage{db},
+		StatsStorage:        &StatsStorage{db},
+		GroupStorage:        &GroupStorage{db},
+		DeviceStorage:       &DeviceStorage{db},
+		MessageStorage:      &PresetMessageStorage{db},
+		PointsLogicsStorage: &PointsLogicsStorage{db},
 	}
 }
 
