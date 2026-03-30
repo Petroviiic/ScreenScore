@@ -20,9 +20,14 @@ import (
 // @Param        token  path      string  true  "Token (URL parameter)"
 // @Success      201        {object}  string
 // @Failure      400        {object}  map[string]string "Token malformed"
+// @Failure      403        {object}  map[string]string "Forbidden access"
 // @Failure      500        {object}  map[string]string "Internal server error"
 // @Router       /notifications/sendtestsilent/{token} [post]
 func (app *Application) sendTestNotification(w http.ResponseWriter, r *http.Request) {
+	if app.config.isProdEnv {
+		app.forbiddenResponse(w, r)
+		return
+	}
 	token := chi.URLParam(r, "token")
 
 	if token == "" {
