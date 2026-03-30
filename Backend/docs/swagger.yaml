@@ -469,6 +469,31 @@ paths:
       summary: Sends a test silent notification
       tags:
       - notifications
+  /points/get_group_stats:
+    get:
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "403":
+          description: Forbidden access
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Retrieves weekly group screentime stats including each users total
+        screentime for points calculations
+      tags:
+      - points
   /stats/get-group-stats:
     post:
       consumes:
