@@ -5,6 +5,8 @@ import (
 	"math"
 	"net/http"
 	"time"
+
+	"github.com/Petroviiic/ScreenScore/internal/storage"
 )
 
 // GetWeeklyGroupStats godoc
@@ -34,7 +36,9 @@ func (app *Application) GetWeeklyGroupStats(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	groupRecords := make(map[string][]*storage.WeeklyGroupStats)
 	for _, record := range data {
+		groupRecords[record.GroupID] = append(groupRecords[record.GroupID], record)
 		if record.GroupAverageScreenTime < float64(app.config.points.MinWeeklyGroupScreentimeThreshold) {
 			log.Println("group average screentime is too small. skiping")
 			continue
@@ -64,9 +68,13 @@ func (app *Application) GetWeeklyGroupStats(w http.ResponseWriter, r *http.Reque
 
 		record.PointsToAdd = pointsToAdd
 		log.Printf("user with id %d and group id %s gets %d points", record.UserID, record.GroupID, pointsToAdd)
-	}
 
-	if err := jsonResponse(w, http.StatusOK, data); err != nil {
+	}
+	if err := app.storage.PointsLogicsStorage.DistributePoints(r.Context(), groupRecords); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+	if err := jsonResponse(w, http.StatusOK, groupRecords); err != nil {
 		app.internalServerErrorJson(w, r, err)
 		return
 	}
