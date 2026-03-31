@@ -175,6 +175,9 @@ func (app *Application) mount() http.Handler {
 				r.Get("/get_users_owned", app.GetOwnedMessages)
 				r.Get("/get_available_shop", app.GetAvailableMessagesInShop)
 				r.Post("/purchase/{messageID}", app.PurchaseMessage)
+
+				r.Get("/get_unread", nil)
+				r.Get("/mark_as_read/{notificationID}", nil)
 			})
 		})
 
