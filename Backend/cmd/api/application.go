@@ -43,6 +43,19 @@ type Config struct {
 	auth            authConfig
 	ratelimiter     rateLimiterConfig
 	notifications   notificationsConfig
+	points          pointsConfig
+}
+
+type pointsConfig struct {
+	MinWeeklyUserScreentimeThreshold  int
+	MinWeeklyGroupScreentimeThreshold int
+	PointsMultiplier                  float64
+	MinGroupMemberCountThreshold      int
+	PercentageOfTopPerformers         int
+	TopPerformersBonus                int
+	FirstPlaceBonus                   int
+	SecondPlaceBonus                  int
+	ThirdPlaceBonus                   int
 }
 
 type notificationsConfig struct {

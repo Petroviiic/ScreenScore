@@ -62,6 +62,16 @@ func main() {
 			// silentNotificationBatchSize: 2,
 			presetNotificationSendingCost: 5,
 		},
+		points: pointsConfig{
+			MinWeeklyUserScreentimeThreshold:  env.GetInt("MIN_WEEKLY_USER_SCREENTIME_THRESHOLD", 60),
+			MinWeeklyGroupScreentimeThreshold: env.GetInt("MIN_WEEKLY_GROUP_SCREENTIME_THRESHOLD", 60),
+			MinGroupMemberCountThreshold:      env.GetInt("MIN_GROUP_MEMBER_COUNT_THRESHOLD", 60),
+			PercentageOfTopPerformers:         env.GetInt("PERCENTAGE_OF_TOP_PERFORMERS", 30),
+			TopPerformersBonus:                env.GetInt("TOP_PERFORMERS_BONUS", 50),
+			FirstPlaceBonus:                   env.GetInt("FIRST_PLACE_BONUS", 150),
+			SecondPlaceBonus:                  env.GetInt("SECOND_PLACE_BONUS", 100),
+			ThirdPlaceBonus:                   env.GetInt("THIRD_PLACE_BONUS", 50),
+		},
 	}
 
 	db, err := db.NewDb(cfg.dbConfig.dbAddr, cfg.dbConfig.maxIdleConns, cfg.dbConfig.maxOpenConns, cfg.dbConfig.maxIdleTime)
