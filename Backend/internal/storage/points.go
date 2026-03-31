@@ -14,6 +14,9 @@ type WeeklyGroupStats struct {
 	UserID                 int64
 	ScreenTime             int
 	GroupAverageScreenTime float64
+	MemberCount            int
+	UserRank               int
+	PointsToAdd            int
 }
 
 func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, startDate, endDate time.Time) ([]*WeeklyGroupStats, error) {
@@ -38,14 +41,18 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, startDate
 				MAX(rs.recorded_at) as last_recorded_at
 			FROM group_users gu
 			JOIN users u ON u.id = gu.user_id
-			JOIN ranked_stats rs ON rs.user_id = gu.user_id AND rs.rn = 1 
+			LEFT JOIN ranked_stats rs ON rs.user_id = gu.user_id AND rs.rn = 1 
 			GROUP BY gu.group_id, gu.user_id, u.email, u.username
 		)
 		SELECT 
-			group_id, user_id, total_screen_time,
+			group_id, 
+			user_id, 
+			total_screen_time, 
+			ROW_NUMBER() OVER (PARTITION BY group_id ORDER BY total_screen_time ASC) as user_rank,
+			COUNT(*) OVER (PARTITION BY group_id) as members_count,
 			AVG(total_screen_time) OVER (PARTITION BY group_id) as group_avg_screen_time
 		FROM user_totals
-		ORDER BY group_id, total_screen_time DESC;
+		ORDER BY group_id, total_screen_time ASC;
 	`
 
 	rows, err := p.db.QueryContext(
@@ -68,6 +75,8 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, startDate
 			&stat.GroupID,
 			&stat.UserID,
 			&stat.ScreenTime,
+			&stat.UserRank,
+			&stat.MemberCount,
 			&stat.GroupAverageScreenTime,
 		)
 		if err != nil {
