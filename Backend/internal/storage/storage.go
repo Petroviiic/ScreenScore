@@ -58,6 +58,7 @@ type Storage struct {
 	}
 	PointsLogicsStorage interface {
 		GetWeeklyGroupStats(ctx context.Context, startDate, endDate time.Time) ([]*WeeklyGroupStats, error)
+		DistributePoints(ctx context.Context, groupRecords map[string][]*WeeklyGroupStats) error
 	}
 }
 

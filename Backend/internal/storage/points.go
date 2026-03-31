@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"log"
 	"time"
 )
 
@@ -87,4 +88,15 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, startDate
 
 	return stats, nil
 
+}
+
+func (p *PointsLogicsStorage) DistributePoints(ctx context.Context, groupRecords map[string][]*WeeklyGroupStats) error {
+	log.Println("evo")
+	for index, group := range groupRecords {
+		log.Println(index, group)
+		// return NewTx(ctx, p.db, func(tx *sql.Tx) error {
+		// 	return nil
+		// })
+	}
+	return nil
 }
