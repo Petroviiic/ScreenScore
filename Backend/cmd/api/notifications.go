@@ -129,6 +129,64 @@ func (app *Application) SendPresetNotification(w http.ResponseWriter, r *http.Re
 	}
 }
 
+// GetUnreadNotifications godoc
+// @Summary      Retrieves a list of all notifications that the users hasn't read
+// @Tags         notifications
+// @Security     BearerAuth
+// @Produce      json
+// @Success      200      {string}  string            "Notifications"
+// @Failure      400      {object}  map[string]string "Bad request payload"
+// @Failure      500      {object}  map[string]string "Internal server error"
+// @Failure      403      {object}  map[string]string "Forbidden access"
+// @Router       /notifications/get_unread [get]
+func (app *Application) GetUnreadNotifications(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserFromContext(r)
+	data, err := app.storage.NotificationStorage.GetUnreadNotifications(r.Context(), userID)
+	if err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+
+	if err := jsonResponse(w, http.StatusOK, data); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+}
+
+// MarkNotificationAsRead godoc
+// @Summary      Notification with provided id will be marked as read
+// @Tags         notifications
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        notificationID  path      string  true  "Notification id (URL parameter)"
+// @Success      200      {string}  string            "Read"
+// @Failure      400      {object}  map[string]string "Bad request payload"
+// @Failure      500      {object}  map[string]string "Internal server error"
+// @Failure      403      {object}  map[string]string "Forbidden access"
+// @Router       /notifications/mark_as_read/{notificationID} [post]
+func (app *Application) MarkNotificationAsRead(w http.ResponseWriter, r *http.Request) {
+	msgIDStr := chi.URLParam(r, "notificationID")
+	msgID, err := strconv.ParseInt(msgIDStr, 10, 64)
+
+	userID := GetUserFromContext(r)
+
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if err := app.storage.NotificationStorage.MarkNotificationAsRead(r.Context(), msgID, userID); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+
+	if err := jsonResponse(w, http.StatusOK, "notification marked as read"); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+}
+
 // GetOwnedMessages godoc
 // @Summary      Retrives a list of all preset messages user owns
 // @Tags         notifications
