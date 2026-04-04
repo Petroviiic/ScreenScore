@@ -289,6 +289,38 @@ paths:
       summary: Retrives a list of all preset messages user can buy
       tags:
       - notifications
+  /notifications/get_unread:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notifications
+          schema:
+            type: string
+        "400":
+          description: Bad request payload
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden access
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Retrieves a list of all notifications that the users hasn't read
+      tags:
+      - notifications
   /notifications/get_users_owned:
     get:
       produces:
@@ -313,6 +345,46 @@ paths:
       security:
       - BearerAuth: []
       summary: Retrives a list of all preset messages user owns
+      tags:
+      - notifications
+  /notifications/mark_as_read/{notificationID}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Notification id (URL parameter)
+        in: path
+        name: notificationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Read
+          schema:
+            type: string
+        "400":
+          description: Bad request payload
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden access
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Notification with provided id will be marked as read
       tags:
       - notifications
   /notifications/purchase/{messageID}:
