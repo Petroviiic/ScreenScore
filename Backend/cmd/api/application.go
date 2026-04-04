@@ -176,9 +176,8 @@ func (app *Application) mount() http.Handler {
 				r.Get("/get_available_shop", app.GetAvailableMessagesInShop)
 				r.Post("/purchase/{messageID}", app.PurchaseMessage)
 
-				//TODO za notifikacije, napravi tabelu za neprocitane notifikacije
-				r.Get("/get_unread", nil)
-				r.Post("/mark_as_read/{notificationID}", nil)
+				r.Get("/get_unread", app.GetUnreadNotifications)
+				r.Post("/mark_as_read/{notificationID}", app.MarkNotificationAsRead)
 			})
 		})
 
