@@ -52,7 +52,8 @@ func (m *PresetMessageStorage) GetPresetMessage(ctx context.Context, userID int6
 			JOIN preset_messages AS pm ON pm.id = um.message_id
 			WHERE um.user_id = $1 AND um.message_id = $2;
 		`
-
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	msg := ""
 	err := m.db.QueryRowContext(
 		ctx,
@@ -76,6 +77,9 @@ func (m *PresetMessageStorage) GetOwnedPresetMessage(ctx context.Context, userID
 			JOIN preset_messages AS pm ON pm.id = um.message_id
 			WHERE um.user_id = $1;
 		`
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	rows, err := m.db.QueryContext(
 		ctx,
 		query,
@@ -113,7 +117,8 @@ func (m *PresetMessageStorage) GetAvaiableInShop(ctx context.Context, userID int
 			LEFT JOIN user_messages AS um ON pm.id = um.message_id AND um.user_id = $1
 			WHERE um.user_id IS NULL AND pm.is_active = TRUE;
 		`
-
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	rows, err := m.db.QueryContext(
 		ctx,
 		query,
