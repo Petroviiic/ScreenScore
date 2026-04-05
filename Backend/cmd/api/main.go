@@ -71,6 +71,7 @@ func main() {
 			FirstPlaceBonus:                   env.GetInt("FIRST_PLACE_BONUS", 150),
 			SecondPlaceBonus:                  env.GetInt("SECOND_PLACE_BONUS", 100),
 			ThirdPlaceBonus:                   env.GetInt("THIRD_PLACE_BONUS", 50),
+			PointsTickerTime:                  time.Hour * 3,
 		},
 	}
 
@@ -115,6 +116,7 @@ func main() {
 
 	go app.StartNotificationWorker()
 	app.StartSilentNotificationWorker()
+	//app.PointsWorker()
 
 	if err := app.run(router); err != nil {
 		log.Panic("error starting the server")

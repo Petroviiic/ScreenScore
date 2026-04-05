@@ -56,6 +56,8 @@ type pointsConfig struct {
 	FirstPlaceBonus                   int
 	SecondPlaceBonus                  int
 	ThirdPlaceBonus                   int
+
+	PointsTickerTime time.Duration
 }
 
 type notificationsConfig struct {
