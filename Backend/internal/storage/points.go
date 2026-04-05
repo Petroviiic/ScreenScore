@@ -3,7 +3,9 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -20,17 +22,28 @@ type WeeklyGroupStats struct {
 	PointsToAdd            int
 }
 
-func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, startDate, endDate time.Time) ([]*WeeklyGroupStats, error) {
+func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, weekNumber, weekYear int, startDate, endDate time.Time) ([]*WeeklyGroupStats, error) {
 	query := `
-		WITH group_users AS (
-			SELECT user_id, group_id FROM group_members
+		WITH unprocessed_groups AS(	
+			SELECT g.id 
+			FROM groups g
+			WHERE NOT EXISTS (
+				SELECT 1 FROM weekly_reward_logs l 
+				WHERE l.group_id = g.id 
+				AND l.week_number = $1
+				AND l.year_year = $2
+			)
+			LIMIT 100
+		),
+		group_users AS (
+			SELECT user_id, group_id FROM group_members WHERE group_id IN (SELECT id FROM unprocessed_groups)
 		),
 		ranked_stats AS (
 			SELECT user_id, screen_time, recorded_at,
 				ROW_NUMBER() OVER (PARTITION BY device_id, user_id ORDER BY recorded_at DESC, screen_time DESC) as rn
 			FROM screen_time_logs
 			WHERE user_id IN (SELECT user_id FROM group_users)
-			AND recorded_at::DATE between $1 and $2
+			AND recorded_at >= $3 AND recorded_at < $4
 		),
 		user_totals AS (
 			SELECT 
@@ -59,6 +72,8 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, startDate
 	rows, err := p.db.QueryContext(
 		ctx,
 		query,
+		weekNumber,
+		weekYear,
 		startDate,
 		endDate,
 	)
@@ -90,13 +105,117 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, startDate
 
 }
 
-func (p *PointsLogicsStorage) DistributePoints(ctx context.Context, groupRecords map[string][]*WeeklyGroupStats) error {
-	log.Println("evo")
-	for index, group := range groupRecords {
-		log.Println(index, group)
-		// return NewTx(ctx, p.db, func(tx *sql.Tx) error {
-		// 	return nil
-		// })
+func (p *PointsLogicsStorage) DistributePoints(ctx context.Context, week, year int, groupRecords map[string][]*WeeklyGroupStats) {
+	for groupID, records := range groupRecords {
+		err := NewTx(ctx, p.db, func(tx *sql.Tx) error {
+			// i := 20
+			// for _, record := range records {
+			// 	if record.PointsToAdd <= 0 {
+			// 		record.PointsToAdd = i
+
+			// 		i += 30
+			// 	}
+			// }
+
+			if err := batchUpdatePoints(ctx, tx, records); err != nil {
+				return err
+			}
+
+			if err := batchInsertOnloadNotifications(ctx, tx, records, MESSAGE_WEEKLY_REWARD, NOTIFICATION_TYPE_WEEKLY_REWARD); err != nil {
+				return err
+			}
+
+			if err := markGroupProcessed(ctx, tx, groupID, week, year); err != nil {
+				return err
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			log.Printf("Error processing group %s: %v", groupID, err)
+		}
+	}
+}
+
+func batchUpdatePoints(ctx context.Context, tx *sql.Tx, stats []*WeeklyGroupStats) error {
+	query := `
+		UPDATE users AS u
+		SET points = u.points + v.points_to_give
+		FROM (VALUES %s) AS v(user_id, points_to_give)
+		WHERE u.id = v.user_id;
+	`
+
+	valueStrings := make([]string, 0, len(stats))
+	valueArgs := make([]interface{}, 0, len(stats)*2)
+	for i, s := range stats {
+		n := i * 2
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d::bigint, $%d::int)", n+1, n+2))
+		valueArgs = append(valueArgs, s.UserID, s.PointsToAdd)
+	}
+	query = fmt.Sprintf(query, strings.Join(valueStrings, ","))
+
+	_, err := tx.ExecContext(
+		ctx,
+		query,
+		valueArgs...,
+	)
+	if err != nil {
+		return fmt.Errorf("bulk update failed: %w", err)
+	}
+	return nil
+}
+func batchInsertOnloadNotifications(ctx context.Context, tx *sql.Tx, stats []*WeeklyGroupStats, message, notificationType string) error {
+	query := `
+		INSERT INTO user_notifications 
+		(user_id, message, points_earned, is_read, notification_type) 
+		VALUES %s;
+	`
+
+	valueStrings := make([]string, 0, len(stats))
+	valueArgs := make([]interface{}, 0, len(stats)*5)
+
+	i := 0
+	for _, s := range stats {
+		if s.PointsToAdd <= 0 {
+			continue
+		}
+		n := i * 5
+		valueStrings = append(valueStrings,
+			fmt.Sprintf("($%d::bigint, $%d, $%d::int, $%d::bool, $%d)",
+				n+1, n+2, n+3, n+4, n+5))
+		valueArgs = append(valueArgs, s.UserID, fmt.Sprintf(message, s.PointsToAdd, s.GroupID), s.PointsToAdd, false, notificationType)
+
+		i++
+	}
+	if i == 0 {
+		return nil
+	}
+	query = fmt.Sprintf(query, strings.Join(valueStrings, ","))
+
+	_, err := tx.ExecContext(ctx, query, valueArgs...)
+	if err != nil {
+		return fmt.Errorf("bulk insert failed: %w", err)
+	}
+	return nil
+}
+
+func markGroupProcessed(ctx context.Context, tx *sql.Tx, groupID string, weekNumber, year int) error {
+	query := `
+		INSERT INTO weekly_reward_logs 
+		(group_id, week_number, year_year) 
+		VALUES 
+		($1, $2, $3);
+	`
+	_, err := tx.ExecContext(
+		ctx,
+		query,
+		groupID,
+		weekNumber,
+		year,
+	)
+	if err != nil {
+		return fmt.Errorf("marking group as processed failed: %w", err)
 	}
 	return nil
 }
