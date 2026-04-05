@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"net/http"
@@ -22,15 +23,14 @@ func (app *Application) GetWeeklyGroupStats(w http.ResponseWriter, r *http.Reque
 		app.forbiddenResponse(w, r)
 		return
 	}
+	now := time.Now()
+	targetTime := now.AddDate(0, 0, -7)
+	year, week := targetTime.ISOWeek()
 
-	eYear, eMonth, eDay := time.Now().UTC().Date()
-	endDate := time.Date(eYear, eMonth, eDay, 0, 0, 0, 0, time.UTC)
-	// startDate := endDate.AddDate(0, 0, -7)
-	startDate := endDate.AddDate(0, 0, -20) //TODO delete this
+	startDate, endDate := GetWeekRange(year, week)
+	log.Println("week range:", startDate, endDate)
 
-	log.Println(startDate, endDate)
-
-	data, err := app.storage.PointsLogicsStorage.GetWeeklyGroupStats(r.Context(), startDate, endDate)
+	data, err := app.storage.PointsLogicsStorage.GetWeeklyGroupStats(r.Context(), week, year, startDate, endDate)
 	if err != nil {
 		app.internalServerErrorJson(w, r, err)
 		return
@@ -52,7 +52,7 @@ func (app *Application) GetWeeklyGroupStats(w http.ResponseWriter, r *http.Reque
 		pointsToAdd := int(math.Max(0, math.Round(diff*app.config.points.PointsMultiplier)))
 
 		if record.MemberCount > app.config.points.MinGroupMemberCountThreshold {
-			if record.UserRank <= int(math.Ceil(float64(record.MemberCount*app.config.points.PercentageOfTopPerformers/100))) {
+			if record.UserRank <= int(math.Ceil(float64(record.MemberCount)*(float64(app.config.points.PercentageOfTopPerformers)/100.0))) {
 				pointsToAdd += app.config.points.TopPerformersBonus
 			}
 		}
@@ -70,16 +70,43 @@ func (app *Application) GetWeeklyGroupStats(w http.ResponseWriter, r *http.Reque
 		log.Printf("user with id %d and group id %s gets %d points", record.UserID, record.GroupID, pointsToAdd)
 
 	}
-	if err := app.storage.PointsLogicsStorage.DistributePoints(r.Context(), groupRecords); err != nil {
-		app.internalServerErrorJson(w, r, err)
-		return
-	}
+
+	app.storage.PointsLogicsStorage.DistributePoints(r.Context(), week, year, groupRecords)
+
 	if err := jsonResponse(w, http.StatusOK, groupRecords); err != nil {
 		app.internalServerErrorJson(w, r, err)
 		return
 	}
 }
 
-func (app *Application) CalculateWeeklyPoints(w http.ResponseWriter, r *http.Request) {
+func (app *Application) PointsWorker() {
+	fmt.Println("Points worker started...")
+	ticker := time.NewTicker(app.config.points.PointsTickerTime)
 
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				fmt.Println("points worker tick")
+
+			default:
+				_ = 1
+			}
+		}
+	}()
+}
+
+func GetWeekRange(year, week int) (time.Time, time.Time) {
+	t := time.Date(year, 7, 1, 0, 0, 0, 0, time.UTC)
+
+	if wd := t.Weekday(); wd == time.Sunday {
+		t = t.AddDate(0, 0, -6)
+	} else {
+		t = t.AddDate(0, 0, -int(wd)+1)
+	}
+
+	_, w := t.ISOWeek()
+	t = t.AddDate(0, 0, (week-w)*7)
+
+	return t, t.AddDate(0, 0, 7)
 }
