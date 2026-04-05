@@ -56,9 +56,14 @@ type Storage struct {
 		GetOwnedPresetMessage(ctx context.Context, userID int64) ([]*PresetMessage, error)
 		GetAvaiableInShop(ctx context.Context, userID int64) ([]*PresetMessage, error)
 	}
+	NotificationStorage interface {
+		MarkNotificationAsRead(context.Context, int64, int64) error
+		GetUnreadNotifications(ctx context.Context, userID int64) ([]*OnLoadNotification, error)
+		AddNewOnLoadNotification(ctx context.Context, userID int64, message string, pointsEarned float64, notificationType string) error
+	}
 	PointsLogicsStorage interface {
-		GetWeeklyGroupStats(ctx context.Context, startDate, endDate time.Time) ([]*WeeklyGroupStats, error)
-		DistributePoints(ctx context.Context, groupRecords map[string][]*WeeklyGroupStats) error
+		GetWeeklyGroupStats(ctx context.Context, weekNumber, weekYear int, startDate, endDate time.Time) ([]*WeeklyGroupStats, error)
+		DistributePoints(ctx context.Context, week, year int, groupRecords map[string][]*WeeklyGroupStats)
 	}
 }
 
@@ -70,6 +75,7 @@ func NewStorage(db *sql.DB) *Storage {
 		DeviceStorage:       &DeviceStorage{db},
 		MessageStorage:      &PresetMessageStorage{db},
 		PointsLogicsStorage: &PointsLogicsStorage{db},
+		NotificationStorage: &NotificationStorage{db},
 	}
 }
 
