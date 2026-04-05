@@ -9,6 +9,9 @@ import (
 var (
 	NOTIFICATION_TYPE_WEEKLY_REWARD = "weeklyReward"
 )
+var (
+	MESSAGE_WEEKLY_REWARD = "You earned %d points in %s! Check your rank."
+)
 
 type NotificationStorage struct {
 	db *sql.DB
