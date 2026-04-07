@@ -184,7 +184,8 @@ func (app *Application) mount() http.Handler {
 		})
 
 		r.Route("/points", func(r chi.Router) {
-			r.Get("/get_group_stats", app.GetWeeklyGroupStats)
+			r.Get("/manual-weekly-reward", app.GetWeeklyRewardManually)
+
 		})
 	})
 
