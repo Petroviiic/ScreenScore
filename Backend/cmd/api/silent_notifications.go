@@ -65,7 +65,7 @@ func (app *Application) sendTestNotification(w http.ResponseWriter, r *http.Requ
 	}
 }
 func (app *Application) StartSilentNotificationWorker() {
-	fmt.Println("Silent notification ticker started...")
+	log.Println("Silent notification ticker started...")
 	ticker := time.NewTicker(app.config.notifications.silentNotificationTimer)
 	//i := 0
 	//return
