@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math"
@@ -17,12 +18,22 @@ import (
 // @Success      201        {object}  string
 // @Failure      403        {object}  map[string]string "Forbidden access"
 // @Failure      500        {object}  map[string]string "Internal server error"
-// @Router       /points/get_group_stats [get]
-func (app *Application) GetWeeklyGroupStats(w http.ResponseWriter, r *http.Request) {
+// @Router       /points/manual-weekly-reward [get]
+func (app *Application) GetWeeklyRewardManually(w http.ResponseWriter, r *http.Request) {
 	if app.config.isProdEnv {
 		app.forbiddenResponse(w, r)
 		return
 	}
+
+	groupRecords := app.ProcessWeeklyRewards()
+
+	if err := jsonResponse(w, http.StatusOK, groupRecords); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+}
+
+func (app *Application) ProcessWeeklyRewards() map[string][]*storage.WeeklyGroupStats {
 	now := time.Now()
 	targetTime := now.AddDate(0, 0, -7)
 	year, week := targetTime.ISOWeek()
@@ -30,10 +41,11 @@ func (app *Application) GetWeeklyGroupStats(w http.ResponseWriter, r *http.Reque
 	startDate, endDate := GetWeekRange(year, week)
 	log.Println("week range:", startDate, endDate)
 
-	data, err := app.storage.PointsLogicsStorage.GetWeeklyGroupStats(r.Context(), week, year, startDate, endDate)
+	ctx := context.Background()
+	data, err := app.storage.PointsLogicsStorage.GetWeeklyGroupStats(ctx, week, year, startDate, endDate)
 	if err != nil {
-		app.internalServerErrorJson(w, r, err)
-		return
+		log.Println(err)
+		return nil
 	}
 
 	groupRecords := make(map[string][]*storage.WeeklyGroupStats)
@@ -71,16 +83,14 @@ func (app *Application) GetWeeklyGroupStats(w http.ResponseWriter, r *http.Reque
 
 	}
 
-	app.storage.PointsLogicsStorage.DistributePoints(r.Context(), week, year, groupRecords)
+	app.storage.PointsLogicsStorage.DistributePoints(ctx, week, year, groupRecords)
 
-	if err := jsonResponse(w, http.StatusOK, groupRecords); err != nil {
-		app.internalServerErrorJson(w, r, err)
-		return
-	}
+	log.Println("worker processed rewards")
+	return groupRecords
 }
 
 func (app *Application) PointsWorker() {
-	fmt.Println("Points worker started...")
+	log.Println("Points worker started...")
 	ticker := time.NewTicker(app.config.points.PointsTickerTime)
 
 	go func() {
@@ -88,7 +98,7 @@ func (app *Application) PointsWorker() {
 			select {
 			case <-ticker.C:
 				fmt.Println("points worker tick")
-
+				app.ProcessWeeklyRewards()
 			default:
 				_ = 1
 			}
