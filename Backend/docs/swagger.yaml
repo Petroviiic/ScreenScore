@@ -541,7 +541,7 @@ paths:
       summary: Sends a test silent notification
       tags:
       - notifications
-  /points/get_group_stats:
+  /points/manual-weekly-reward:
     get:
       produces:
       - application/json

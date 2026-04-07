@@ -706,7 +706,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/points/get_group_stats": {
+        "/points/manual-weekly-reward": {
             "get": {
                 "produces": [
                     "application/json"
