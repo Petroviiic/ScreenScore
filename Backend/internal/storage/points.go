@@ -14,6 +14,7 @@ type PointsLogicsStorage struct {
 }
 type WeeklyGroupStats struct {
 	GroupID                string
+	GroupName              string
 	UserID                 int64
 	ScreenTime             int
 	GroupAverageScreenTime float64
@@ -36,7 +37,9 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, weekNumbe
 			LIMIT 100
 		),
 		group_users AS (
-			SELECT user_id, group_id FROM group_members WHERE group_id IN (SELECT id FROM unprocessed_groups)
+			SELECT user_id, group_id, g.name FROM group_members 
+			JOIN groups g ON g.id = group_id
+			WHERE group_id IN (SELECT id FROM unprocessed_groups)
 		),
 		ranked_stats AS (
 			SELECT user_id, screen_time, recorded_at,
@@ -47,6 +50,7 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, weekNumbe
 		),
 		user_totals AS (
 			SELECT 
+				gu.name,
 				gu.group_id,
 				gu.user_id, 
 				u.email, 
@@ -56,10 +60,11 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, weekNumbe
 			FROM group_users gu
 			JOIN users u ON u.id = gu.user_id
 			LEFT JOIN ranked_stats rs ON rs.user_id = gu.user_id AND rs.rn = 1 
-			GROUP BY gu.group_id, gu.user_id, u.email, u.username
+			GROUP BY gu.group_id, gu.user_id, u.email, u.username, gu.name
 		)
 		SELECT 
 			group_id, 
+			name,
 			user_id, 
 			total_screen_time, 
 			ROW_NUMBER() OVER (PARTITION BY group_id ORDER BY total_screen_time ASC) as user_rank,
@@ -89,6 +94,7 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, weekNumbe
 		stat := &WeeklyGroupStats{}
 		err := rows.Scan(
 			&stat.GroupID,
+			&stat.GroupName,
 			&stat.UserID,
 			&stat.ScreenTime,
 			&stat.UserRank,
@@ -184,7 +190,7 @@ func batchInsertOnloadNotifications(ctx context.Context, tx *sql.Tx, stats []*We
 		valueStrings = append(valueStrings,
 			fmt.Sprintf("($%d::bigint, $%d, $%d::int, $%d::bool, $%d)",
 				n+1, n+2, n+3, n+4, n+5))
-		valueArgs = append(valueArgs, s.UserID, fmt.Sprintf(message, s.PointsToAdd, s.GroupID), s.PointsToAdd, false, notificationType)
+		valueArgs = append(valueArgs, s.UserID, fmt.Sprintf(message, s.PointsToAdd, s.GroupName), s.PointsToAdd, false, notificationType)
 
 		i++
 	}
