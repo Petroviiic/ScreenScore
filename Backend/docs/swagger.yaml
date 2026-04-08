@@ -7,6 +7,13 @@ definitions:
       name:
         type: string
     type: object
+  main.GroupGoalPayload:
+    properties:
+      goal:
+        type: number
+      group_id:
+        type: string
+    type: object
   main.GroupStatsPayload:
     properties:
       desired_date:
@@ -252,6 +259,39 @@ paths:
       security:
       - BearerAuth: []
       summary: Leave group
+      tags:
+      - groups
+  /groups/set_group_goal:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Payload with new group goal
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.GroupGoalPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "403":
+          description: User with given id is not a member of the group
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Set group goal
       tags:
       - groups
   /health:
