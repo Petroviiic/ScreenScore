@@ -56,8 +56,8 @@ type pointsConfig struct {
 	FirstPlaceBonus                   int
 	SecondPlaceBonus                  int
 	ThirdPlaceBonus                   int
-
-	PointsTickerTime time.Duration
+	GroupGoalBonus                    int
+	PointsTickerTime                  time.Duration
 }
 
 type notificationsConfig struct {
@@ -159,6 +159,7 @@ func (app *Application) mount() http.Handler {
 			r.Post("/leave/{groupId}", app.LeaveGroup)
 			r.Post("/kick", app.KickUser)
 			r.Get("/get_user_groups", app.GetUserGroups)
+			r.Post("/set_group_goal", app.SetGroupGoal)
 		})
 
 		r.Route("/notifications", func(r chi.Router) {
@@ -185,6 +186,13 @@ func (app *Application) mount() http.Handler {
 
 		r.Route("/points", func(r chi.Router) {
 			r.Get("/manual-weekly-reward", app.GetWeeklyRewardManually)
+
+		})
+		r.Route("/streak", func(r chi.Router) {
+			r.Use(app.TokenAuthMiddleware)
+			r.Use(app.RatelimiterMiddleware(app.rateLimiters.apiFixedWindow, true)) //mzd da ovaj custom ne ide na auth ali aj vidjecu
+
+			r.Post("/sync", app.SyncStreak)
 
 		})
 	})
