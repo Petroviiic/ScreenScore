@@ -687,6 +687,32 @@ paths:
       summary: Synchronize user screen time
       tags:
       - stats
+  /streak/sync:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "403":
+          description: User with given id is not a member of the group
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Sync streak
+      tags:
+      - streaks
   /users/login:
     post:
       consumes:
