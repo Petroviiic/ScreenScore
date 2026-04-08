@@ -78,6 +78,9 @@ func (app *Application) ProcessWeeklyRewards() map[string][]*storage.WeeklyGroup
 			pointsToAdd += app.config.points.ThirdPlaceBonus
 		}
 
+		if float64(record.ScreenTime) < record.GroupGoal {
+			pointsToAdd += app.config.points.GroupGoalBonus
+		}
 		record.PointsToAdd = pointsToAdd
 		log.Printf("user with id %d and group id %s gets %d points", record.UserID, record.GroupID, pointsToAdd)
 
