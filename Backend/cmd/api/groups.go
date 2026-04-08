@@ -187,3 +187,48 @@ func (app *Application) GetUserGroups(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+type GroupGoalPayload struct {
+	Goal    float64 `json:"goal"`
+	GroupID string  `json:"group_id"`
+}
+
+// SetGroupGoal godoc
+// @Summary      Set group goal
+// @Tags         groups
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        payload  body      GroupGoalPayload  true  "Payload with new group goal"
+// @Success      200
+// @Failure      403        {object}  map[string]string "User with given id is not a member of the group"
+// @Failure      500        {object}  map[string]string "Internal server error"
+// @Router       /groups/set_group_goal	[post]
+func (app *Application) SetGroupGoal(w http.ResponseWriter, r *http.Request) {
+	var payload GroupGoalPayload
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	userID := GetUserFromContext(r)
+	ctx := r.Context()
+	if !app.storage.GroupStorage.CheckIfMember(ctx, userID, payload.GroupID) {
+		log.Printf("user with id: %d is not a member of group with id: %s", userID, payload.GroupID)
+		app.forbiddenResponse(w, r)
+		return
+	}
+
+	if payload.Goal > 4 {
+		app.badRequestResponse(w, r, fmt.Errorf("new goal has to be lower than 4 hours"))
+		return
+	}
+	if err := app.storage.GroupStorage.SetGroupGoal(ctx, payload.Goal, payload.GroupID); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+
+	if err := jsonResponse(w, http.StatusOK, nil); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+}
