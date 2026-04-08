@@ -71,6 +71,7 @@ func main() {
 			FirstPlaceBonus:                   env.GetInt("FIRST_PLACE_BONUS", 150),
 			SecondPlaceBonus:                  env.GetInt("SECOND_PLACE_BONUS", 100),
 			ThirdPlaceBonus:                   env.GetInt("THIRD_PLACE_BONUS", 50),
+			GroupGoalBonus:                    env.GetInt("GROUP_GOAL_BONUS", 50),
 			PointsTickerTime:                  time.Hour * 3,
 			// PointsTickerTime:                  time.Second * 5,
 		},
