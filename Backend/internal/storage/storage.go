@@ -42,6 +42,7 @@ type Storage struct {
 		LeaveGroup(ctx context.Context, userId int64, groupId string) error
 		KickUser(context.Context, int64, string) error
 		GetUserGroups(ctx context.Context, userID int64) ([]*Group, error)
+		SetGroupGoal(ctx context.Context, goal float64, groupID string) error
 	}
 	DeviceStorage interface {
 		Update(ctx context.Context, userId int64, deviceId string, pushToken string) error
@@ -65,6 +66,9 @@ type Storage struct {
 		GetWeeklyGroupStats(ctx context.Context, weekNumber, weekYear int, startDate, endDate time.Time) ([]*WeeklyGroupStats, error)
 		DistributePoints(ctx context.Context, week, year int, groupRecords map[string][]*WeeklyGroupStats)
 	}
+	UserStreakStorage interface {
+		GetStreakData(ctx context.Context, userID int64) (*StreakData, error)
+	}
 }
 
 func NewStorage(db *sql.DB) *Storage {
@@ -76,6 +80,7 @@ func NewStorage(db *sql.DB) *Storage {
 		MessageStorage:      &PresetMessageStorage{db},
 		PointsLogicsStorage: &PointsLogicsStorage{db},
 		NotificationStorage: &NotificationStorage{db},
+		UserStreakStorage:   &UserStreakStorage{db},
 	}
 }
 
