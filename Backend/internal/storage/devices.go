@@ -73,7 +73,6 @@ func (d *DeviceStorage) GetFCMTokens(ctx context.Context, userId int64) ([]strin
 		)
 		if err != nil {
 			continue
-			return nil, err
 		}
 		tokens = append(tokens, token)
 	}
