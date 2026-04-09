@@ -199,3 +199,22 @@ func (g *GroupStorage) GetUserGroups(ctx context.Context, userID int64) ([]*Grou
 
 	return groups, nil
 }
+
+func (s *GroupStorage) SetGroupGoal(ctx context.Context, goal float64, groupID string) error {
+	query := `
+		UPDATE groups SET group_goal = $1 WHERE id = $2;
+	`
+
+	_, err := s.db.ExecContext(
+		ctx,
+		query,
+		goal,
+		groupID,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

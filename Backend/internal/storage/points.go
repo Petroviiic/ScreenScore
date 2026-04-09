@@ -18,6 +18,7 @@ type WeeklyGroupStats struct {
 	UserID                 int64
 	ScreenTime             int
 	GroupAverageScreenTime float64
+	GroupGoal              float64
 	MemberCount            int
 	UserRank               int
 	PointsToAdd            int
@@ -37,7 +38,7 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, weekNumbe
 			LIMIT 100
 		),
 		group_users AS (
-			SELECT user_id, group_id, g.name FROM group_members 
+			SELECT user_id, group_id, g.name, g.group_goal FROM group_members 
 			JOIN groups g ON g.id = group_id
 			WHERE group_id IN (SELECT id FROM unprocessed_groups)
 		),
@@ -51,6 +52,7 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, weekNumbe
 		user_totals AS (
 			SELECT 
 				gu.name,
+				gu.group_goal,
 				gu.group_id,
 				gu.user_id, 
 				u.email, 
@@ -60,10 +62,11 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, weekNumbe
 			FROM group_users gu
 			JOIN users u ON u.id = gu.user_id
 			LEFT JOIN ranked_stats rs ON rs.user_id = gu.user_id AND rs.rn = 1 
-			GROUP BY gu.group_id, gu.user_id, u.email, u.username, gu.name
+			GROUP BY gu.group_id, gu.user_id, u.email, u.username, gu.name, gu.group_goal
 		)
 		SELECT 
 			group_id, 
+			group_goal,
 			name,
 			user_id, 
 			total_screen_time, 
@@ -94,6 +97,7 @@ func (p *PointsLogicsStorage) GetWeeklyGroupStats(ctx context.Context, weekNumbe
 		stat := &WeeklyGroupStats{}
 		err := rows.Scan(
 			&stat.GroupID,
+			&stat.GroupGoal,
 			&stat.GroupName,
 			&stat.UserID,
 			&stat.ScreenTime,
