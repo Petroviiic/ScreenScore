@@ -23,6 +23,13 @@ func newTestApplication(t *testing.T) *Application {
 			authFixedWindow: ratelimiter.NewFixedWindowLimiter(100, 1),
 			tokenBucket:     ratelimiter.NewTokenBuckerRatelimiter(10, 10),
 		},
+		config: Config{
+			userStreak: userStreakConfig{
+				maxShieldCount:          5,
+				minScreenTimeThreshold:  120,
+				shieldCountIncreaseRate: 5,
+			},
+		},
 	}
 }
 
