@@ -44,8 +44,13 @@ type Config struct {
 	ratelimiter     rateLimiterConfig
 	notifications   notificationsConfig
 	points          pointsConfig
+	userStreak      userStreakConfig
 }
-
+type userStreakConfig struct {
+	maxShieldCount          int
+	shieldCountIncreaseRate int
+	minScreenTimeThreshold  float64
+}
 type pointsConfig struct {
 	MinWeeklyUserScreentimeThreshold  int
 	MinWeeklyGroupScreentimeThreshold int

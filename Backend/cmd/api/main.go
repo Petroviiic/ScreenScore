@@ -75,8 +75,13 @@ func main() {
 			PointsTickerTime:                  time.Hour * 3,
 			// PointsTickerTime:                  time.Second * 5,
 		},
+		userStreak: userStreakConfig{
+			maxShieldCount:          env.GetInt("MAX_SHIELD_COUNT", 5),
+			minScreenTimeThreshold:  float64(env.GetInt("MIN_SCREEN_TIME_THRESHOLD", 120)),
+			shieldCountIncreaseRate: env.GetInt("SHIELD_COUUNT_INCREASE_RATE", 5),
+		},
 	}
-
+	log.Println(cfg.userStreak)
 	db, err := db.NewDb(cfg.dbConfig.dbAddr, cfg.dbConfig.maxIdleConns, cfg.dbConfig.maxOpenConns, cfg.dbConfig.maxIdleTime)
 	if err != nil {
 		log.Panic("error connecting to db")
