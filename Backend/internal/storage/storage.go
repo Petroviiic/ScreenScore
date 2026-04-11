@@ -33,6 +33,8 @@ type Storage struct {
 		GetUsersLast(context.Context, int64, string) (*UsageRecord, error)
 		AddNewRecord(context.Context, int64, int32, string, time.Time) error
 		GetGroupStats(context.Context, string, time.Time) ([]*GroupStats, error)
+		GetUserAverageScreenTimeForWeek(context.Context, time.Time, time.Time) (float64, error)
+		GetUserScreenTimeForDay(context.Context, time.Time) (int, error)
 	}
 	GroupStorage interface {
 		CheckIfMember(context.Context, int64, string) bool
@@ -68,6 +70,7 @@ type Storage struct {
 	}
 	UserStreakStorage interface {
 		GetStreakData(ctx context.Context, userID int64) (*StreakData, error)
+		SaveStreak(ctx context.Context, userID int64, data *StreakData) error
 	}
 }
 
