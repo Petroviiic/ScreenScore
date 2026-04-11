@@ -40,6 +40,7 @@ func (s *UserStreakStorage) GetStreakData(ctx context.Context, userID int64) (*S
 
 	now := time.Now().UTC()
 	lastWeek, lastYear := now.AddDate(0, 0, -7).ISOWeek()
+	//TODO mzd ovdje treba trenutna sedmica a ne prosla
 	data := &StreakData{
 		CurrentStreak:   0,
 		AllTimeHigh:     0,
@@ -74,7 +75,7 @@ func (s *UserStreakStorage) GetStreakData(ctx context.Context, userID int64) (*S
 	return data, nil
 }
 
-func (s *UserStreakStorage) SaveStreak(ctx context.Context, data *StreakData) error {
+func (s *UserStreakStorage) SaveStreak(ctx context.Context, userID int64, data *StreakData) error {
 	// query := `
 	// 		INSERT INTO user_streaks (user_id, current_streak, all_time_high, shield_count, week_number, year_number, last_week_average, last_updated_at)
 	// 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -83,6 +84,9 @@ func (s *UserStreakStorage) SaveStreak(ctx context.Context, data *StreakData) er
 	// 			current_streak = EXCLUDED.current_streak,
 	// 			all_time_high = GREATEST(user_streaks.all_time_high, EXCLUDED.all_time_high),
 	// 			shield_count = EXCLUDED.shield_count,
+	// 			week_number = EXCLUDED.week_number,
+	// 			year_number = EXCLUDED.year_number,
+	// 			last_week_average = EXCLUDED.last_week_average,
 	// 			last_updated_at = EXCLUDED.last_updated_at;
 	//
 	//		--returning id --vidi da li ti treba ovaj
