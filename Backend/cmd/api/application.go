@@ -28,6 +28,7 @@ type Application struct {
 	rateLimiters     rateLimiters
 	firebase         *messaging.Client
 	notificationChan chan NotificationTask
+	clock            Clock
 }
 type rateLimiters struct {
 	apiFixedWindow  *ratelimiter.FixedWindowRateLimiter

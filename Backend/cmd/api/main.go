@@ -105,6 +105,7 @@ func main() {
 		log.Panic("firebase client is empty")
 	}
 
+	clock := GetRealClock()
 	app := &Application{
 		config:        cfg,
 		db:            db,
@@ -117,6 +118,7 @@ func main() {
 		},
 		firebase:         firebaseApp,
 		notificationChan: make(chan NotificationTask),
+		clock:            clock,
 	}
 
 	router := app.mount()
