@@ -30,6 +30,7 @@ func newTestApplication(t *testing.T) *Application {
 				shieldCountIncreaseRate: 5,
 			},
 		},
+		clock: GetMockClock(),
 	}
 }
 
