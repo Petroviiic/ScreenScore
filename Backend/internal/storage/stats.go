@@ -135,3 +135,10 @@ func (s *StatsStorage) GetGroupStats(ctx context.Context, groupId string, desire
 
 	return stats, nil
 }
+
+func (s *StatsStorage) GetUserAverageScreenTimeForWeek(context.Context, time.Time, time.Time) (float64, error) {
+	return -1, nil
+}
+func (s *StatsStorage) GetUserScreenTimeForDay(context.Context, time.Time) (int, error) {
+	return -1, nil
+}
