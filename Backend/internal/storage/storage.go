@@ -34,7 +34,7 @@ type Storage struct {
 		AddNewRecord(context.Context, int64, int32, string, time.Time) error
 		GetGroupStats(context.Context, string, time.Time) ([]*GroupStats, error)
 		GetUserAverageScreenTimeForWeek(context.Context, time.Time, time.Time) (float64, error)
-		GetUserScreenTimeForDay(context.Context, time.Time) (int, error)
+		GetUserScreenTimeForDay(context.Context, time.Time, int64) (int, error)
 	}
 	GroupStorage interface {
 		CheckIfMember(context.Context, int64, string) bool
