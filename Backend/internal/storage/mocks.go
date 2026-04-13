@@ -32,7 +32,7 @@ func (s *StatsMockStorage) GetGroupStats(context.Context, string, time.Time) ([]
 func (s *StatsMockStorage) GetUserAverageScreenTimeForWeek(context.Context, time.Time, time.Time) (float64, error) {
 	return s.GetUserAverageScreenTimeForWeekFunc(nil, 0)
 }
-func (s *StatsMockStorage) GetUserScreenTimeForDay(context.Context, time.Time) (int, error) {
+func (s *StatsMockStorage) GetUserScreenTimeForDay(context.Context, time.Time, int64) (int, error) {
 	return s.GetUserScreenTimeForDayFunc(nil, 0)
 }
 
