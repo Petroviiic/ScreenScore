@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 )
 
@@ -139,6 +140,37 @@ func (s *StatsStorage) GetGroupStats(ctx context.Context, groupId string, desire
 func (s *StatsStorage) GetUserAverageScreenTimeForWeek(context.Context, time.Time, time.Time) (float64, error) {
 	return -1, nil
 }
-func (s *StatsStorage) GetUserScreenTimeForDay(context.Context, time.Time) (int, error) {
-	return -1, nil
+func (s *StatsStorage) GetUserScreenTimeForDay(ctx context.Context, date time.Time, userID int64) (int, error) {
+	query := `
+		WITH ranked_stats AS (
+			SELECT user_id, screen_time, recorded_at,
+				ROW_NUMBER() OVER (PARTITION BY device_id,user_id ORDER BY recorded_at DESC, screen_time DESC) as rn
+			FROM screen_time_logs
+			WHERE user_id = $1
+			AND recorded_at >= $2::TIMESTAMP AND recorded_at < $2::TIMESTAMP + interval '1 day'
+		)
+		SELECT 
+			COALESCE(SUM(rs.screen_time), 0) as total_screen_time
+		FROM ranked_stats rs
+		WHERE rs.rn = 1;
+	`
+
+	totalMins := -1
+	err := s.db.QueryRowContext(
+		ctx,
+		query,
+		userID,
+		date,
+	).Scan(
+		&totalMins,
+	)
+
+	if err != nil {
+		return -1, err
+	}
+	if totalMins == -1 {
+		return -1, fmt.Errorf("unknown error")
+	}
+
+	return totalMins, nil
 }
