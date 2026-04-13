@@ -30,7 +30,7 @@ func (app *Application) SyncStreak(w http.ResponseWriter, r *http.Request) {
 		app.internalServerErrorJson(w, r, err)
 		return
 	}
-	validation, err := app.ValidateStreak(r.Context(), data, false)
+	validation, err := app.ValidateStreak(r.Context(), data, userID, false)
 
 	if err != nil || validation == nil {
 		app.customErrorJson(w, r, err, http.StatusExpectationFailed)
@@ -67,7 +67,7 @@ type StreakValidation struct {
 	IsNewRecord   bool `json:"is_new_record"`
 }
 
-func (app *Application) ValidateStreak(ctx context.Context, data *storage.StreakData, repair bool) (*StreakValidation, error) {
+func (app *Application) ValidateStreak(ctx context.Context, data *storage.StreakData, userID int64, repair bool) (*StreakValidation, error) {
 	response := &StreakValidation{
 		ShieldsNeeded: 0,
 		StreakFrozen:  false,
@@ -81,7 +81,7 @@ func (app *Application) ValidateStreak(ctx context.Context, data *storage.Streak
 	lastUpdate := data.LastUpdatedAt.UTC().Truncate(24 * time.Hour)
 	dayDifference := int(today.Sub(lastUpdate).Hours() / 24)
 
-	yesterdayScreenTime, err := app.storage.StatsStorage.GetUserScreenTimeForDay(ctx, today.AddDate(0, 0, -1))
+	yesterdayScreenTime, err := app.storage.StatsStorage.GetUserScreenTimeForDay(ctx, today.AddDate(0, 0, -1), userID)
 	if err != nil {
 		return nil, err
 	}
