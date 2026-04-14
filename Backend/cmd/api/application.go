@@ -199,6 +199,7 @@ func (app *Application) mount() http.Handler {
 			r.Use(app.RatelimiterMiddleware(app.rateLimiters.apiFixedWindow, true)) //mzd da ovaj custom ne ide na auth ali aj vidjecu
 
 			r.Post("/sync", app.SyncStreak)
+			r.Post("/repair", app.RepairStreak)
 
 		})
 	})
