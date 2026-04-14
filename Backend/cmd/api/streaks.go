@@ -96,7 +96,7 @@ func (app *Application) ValidateStreak(ctx context.Context, data *storage.Streak
 
 		if lastWeek != data.WeekNumber || lastYear != data.YearNumber {
 			weekStart, weekEnd := GetWeekRange(lastYear, lastWeek)
-			screentime, err := app.storage.StatsStorage.GetUserAverageScreenTimeForWeek(ctx, weekStart, weekEnd)
+			screentime, err := app.storage.StatsStorage.GetUserAverageScreenTimeForWeek(ctx, weekStart, weekEnd, userID)
 
 			if err != nil {
 				return nil, err
