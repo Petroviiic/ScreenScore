@@ -915,13 +915,14 @@
                 }
             }
         },
-        "/streak/sync": {
+        "/streak/repair": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
+                "description": "Consumes shields to unfreeze a streak that was blocked due to inactivity or high screen time.",
                 "consumes": [
                     "application/json"
                 ],
@@ -931,13 +932,80 @@
                 "tags": [
                     "streaks"
                 ],
-                "summary": "Sync streak",
+                "summary": "Repair a frozen streak",
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.SyncRepairResponse"
+                        }
                     },
                     "403": {
-                        "description": "User with given id is not a member of the group",
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "417": {
+                        "description": "Not enough shields or validation failed",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/streak/sync": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Calculates the current streak status, checks for inactivity or excessive screen time, and increments the streak if conditions are met.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "streaks"
+                ],
+                "summary": "Sync user streak",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.SyncRepairResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized/Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "417": {
+                        "description": "Expectation Failed - Validation error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1184,6 +1252,31 @@
                 }
             }
         },
+        "main.StreakValidation": {
+            "type": "object",
+            "properties": {
+                "is_new_record": {
+                    "type": "boolean"
+                },
+                "shields_needed": {
+                    "type": "integer"
+                },
+                "streak_frozen": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "main.SyncRepairResponse": {
+            "type": "object",
+            "properties": {
+                "streak_data": {
+                    "$ref": "#/definitions/storage.StreakData"
+                },
+                "streak_validation": {
+                    "$ref": "#/definitions/main.StreakValidation"
+                }
+            }
+        },
         "main.UserPayload": {
             "type": "object",
             "required": [
@@ -1251,6 +1344,38 @@
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "storage.StreakData": {
+            "type": "object",
+            "properties": {
+                "all_time_high": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "current_streak": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "last_updated_at": {
+                    "type": "string"
+                },
+                "last_week_average": {
+                    "type": "number"
+                },
+                "shield_count": {
+                    "type": "integer"
+                },
+                "week_number": {
+                    "type": "integer"
+                },
+                "year_number": {
+                    "type": "integer"
                 }
             }
         }
