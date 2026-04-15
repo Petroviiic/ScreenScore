@@ -11,48 +11,95 @@ import (
 	"github.com/Petroviiic/ScreenScore/internal/storage"
 )
 
-// SyncStreak godoc
-// @Summary      Sync streak
-// @Tags         streaks
-// @Security     BearerAuth
-// @Accept       json
-// @Produce      json
-// @Success      200
-// @Failure      403        {object}  map[string]string "User with given id is not a member of the group"
-// @Failure      500        {object}  map[string]string "Internal server error"
-// @Router       /streak/sync	[post]
-func (app *Application) SyncStreak(w http.ResponseWriter, r *http.Request) {
+var (
+	NOT_ENOUGH_SHIELDS_TO_REPAIR_ERROR = fmt.Errorf("not enough shields to repair")
+)
+
+type SyncRepairResponse struct {
+	StreakValidation *StreakValidation   `json:"streak_validation"`
+	StreakData       *storage.StreakData `json:"streak_data"`
+}
+
+func (app *Application) StreakLogic(w http.ResponseWriter, r *http.Request, isRepair bool) *SyncRepairResponse {
 	ctx := r.Context()
 	userID := GetUserFromContext(r)
 
 	data, err := app.storage.UserStreakStorage.GetStreakData(ctx, userID)
 	if err != nil {
 		app.internalServerErrorJson(w, r, err)
-		return
+		return nil
 	}
-	validation, err := app.ValidateStreak(r.Context(), data, userID, false)
 
+	validation, err := app.ValidateStreak(r.Context(), data, userID, isRepair)
 	if err != nil || validation == nil {
-		app.customErrorJson(w, r, err, http.StatusExpectationFailed)
-		return
+		if err != NOT_ENOUGH_SHIELDS_TO_REPAIR_ERROR || validation == nil {
+			app.customErrorJson(w, r, err, http.StatusExpectationFailed)
+			return nil
+		}
 	}
 
-	if !validation.StreakFrozen {
+	if !validation.StreakFrozen || (validation.StreakFrozen && isRepair) {
 		log.Println("streak update")
 		if err := app.storage.UserStreakStorage.SaveStreak(ctx, userID, data); err != nil {
 			app.internalServerErrorJson(w, r, err)
-			return
+			return nil
+		}
+		if validation.StreakFrozen && isRepair {
+			validation.StreakLost = true
 		}
 	} else {
 		log.Printf("streak frozen, shields needed %d", validation.ShieldsNeeded)
 	}
 
-	response := struct {
-		StreakValidation *StreakValidation   `json:"streak_validation"`
-		StreakData       *storage.StreakData `json:"streak_data"`
-	}{
+	response := &SyncRepairResponse{
 		StreakValidation: validation,
 		StreakData:       data,
+	}
+
+	return response
+}
+
+// SyncStreak godoc
+// @Summary      Sync user streak
+// @Description  Calculates the current streak status, checks for inactivity or excessive screen time, and increments the streak if conditions are met.
+// @Tags         streaks
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  SyncRepairResponse
+// @Failure      403  {object}  map[string]string "Unauthorized/Forbidden"
+// @Failure      417  {object}  map[string]string "Expectation Failed - Validation error"
+// @Failure      500  {object}  map[string]string "Internal server error"
+// @Router       /streak/sync [post]
+func (app *Application) SyncStreak(w http.ResponseWriter, r *http.Request) {
+	response := app.StreakLogic(w, r, false)
+
+	if response == nil {
+		return
+	}
+	if err := jsonResponse(w, http.StatusOK, response); err != nil {
+		app.internalServerErrorJson(w, r, err)
+		return
+	}
+}
+
+// RepairStreak godoc
+// @Summary      Repair a frozen streak
+// @Description  Consumes shields to unfreeze a streak that was blocked due to inactivity or high screen time.
+// @Tags         streaks
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  SyncRepairResponse
+// @Failure      403  {object}  map[string]string "Unauthorized"
+// @Failure      417  {object}  map[string]string "Not enough shields or validation failed"
+// @Failure      500  {object}  map[string]string "Internal server error"
+// @Router       /streak/repair [post]
+func (app *Application) RepairStreak(w http.ResponseWriter, r *http.Request) {
+	response := app.StreakLogic(w, r, true)
+
+	if response == nil {
+		return
 	}
 
 	if err := jsonResponse(w, http.StatusOK, response); err != nil {
@@ -65,6 +112,7 @@ type StreakValidation struct {
 	ShieldsNeeded int  `json:"shields_needed"`
 	StreakFrozen  bool `json:"streak_frozen"`
 	IsNewRecord   bool `json:"is_new_record"`
+	StreakLost    bool `json:"streak_lost"`
 }
 
 func (app *Application) ValidateStreak(ctx context.Context, data *storage.StreakData, userID int64, repair bool) (*StreakValidation, error) {
@@ -92,8 +140,9 @@ func (app *Application) ValidateStreak(ctx context.Context, data *storage.Streak
 	}
 
 	if !response.StreakFrozen {
-		lastYear, lastWeek := time.Now().UTC().AddDate(0, 0, -7).ISOWeek()
-
+		lastYear, lastWeek := app.clock.Now().AddDate(0, 0, -7).ISOWeek()
+		ws, we := GetWeekRange(lastYear, lastWeek)
+		fmt.Println(ws, we, yesterdayScreenTime, lastYear, lastWeek)
 		if lastWeek != data.WeekNumber || lastYear != data.YearNumber {
 			weekStart, weekEnd := GetWeekRange(lastYear, lastWeek)
 			screentime, err := app.storage.StatsStorage.GetUserAverageScreenTimeForWeek(ctx, weekStart, weekEnd, userID)
@@ -133,11 +182,11 @@ func (app *Application) ValidateStreak(ctx context.Context, data *storage.Streak
 			response.StreakFrozen = false
 			data.LastUpdatedAt = time.Now().UTC()
 		} else {
-			err := fmt.Errorf("not enough shields to repair, have %d, need %d", data.ShieldCount, response.ShieldsNeeded)
+			//fmt.Errorf("not enough shields to repair, have %d, need %d", data.ShieldCount, response.ShieldsNeeded)
 			data.CurrentStreak = 0
 			data.ShieldCount = 0
 			data.LastUpdatedAt = time.Now().UTC()
-			return response, err
+			return response, NOT_ENOUGH_SHIELDS_TO_REPAIR_ERROR
 		}
 	}
 	return response, nil
