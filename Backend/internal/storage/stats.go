@@ -143,8 +143,8 @@ func (s *StatsStorage) GetUserAverageScreenTimeForWeek(ctx context.Context, week
 			SELECT user_id, screen_time, recorded_at,
 				ROW_NUMBER() OVER (PARTITION BY device_id, recorded_at::DATE ORDER BY recorded_at DESC, screen_time DESC) as rn
 			FROM screen_time_logs
-			WHERE user_id = 16	
-			AND recorded_at >= $1::TIMESTAMP AND recorded_at < $2
+			WHERE user_id = $1	
+			AND recorded_at >= $2::TIMESTAMP AND recorded_at < $3
 		)
 		SELECT 
 			COALESCE(AVG(rs.screen_time), 0) as average_screen_time
@@ -169,7 +169,7 @@ func (s *StatsStorage) GetUserAverageScreenTimeForWeek(ctx context.Context, week
 	if averageMins == -1 {
 		return -1, fmt.Errorf("unknown error")
 	}
-
+	fmt.Println("stats.go tu sam", averageMins)
 	return averageMins, nil
 }
 func (s *StatsStorage) GetUserScreenTimeForDay(ctx context.Context, date time.Time, userID int64) (int, error) {
