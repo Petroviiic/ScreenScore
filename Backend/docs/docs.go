@@ -1269,6 +1269,9 @@ const docTemplate = `{
                 },
                 "streak_frozen": {
                     "type": "boolean"
+                },
+                "streak_lost": {
+                    "type": "boolean"
                 }
             }
         },

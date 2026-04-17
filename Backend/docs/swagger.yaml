@@ -64,6 +64,8 @@ definitions:
         type: integer
       streak_frozen:
         type: boolean
+      streak_lost:
+        type: boolean
     type: object
   main.SyncRepairResponse:
     properties:
