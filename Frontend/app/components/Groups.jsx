@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { groupsStyles as styles } from "@/assets/styles/home.styles";
+import { useAppData } from "@/contexts/AppDataContext";
 const API_URL = "https://shenika-ovarian-unpiratically.ngrok-free.dev";
 
 async function authFetch(path, options = {}) {
@@ -237,8 +238,8 @@ function ActionModal({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Groups() {
-  const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { groupsData, refetchGroups } = useAppData();
+  const [groups, setGroups] = useState(groupsData);
   const [refreshing, setRefreshing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
 
@@ -248,28 +249,15 @@ export default function Groups() {
 
   // ── Fetch groups ─────────────────────────────────────────────────────────────
 
-  const fetchGroups = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    try {
-      const res = await authFetch("/v1/groups/get_user_groups");
-      if (res.ok) {
-        const data = await res.json();
-        const arr = Array.isArray(data.data) ? data.data : [];
-        setGroups(arr);
-      }
-    } catch (err) {
-      console.log("fetch groups error:", err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchGroups();
-  }, []);
+    setGroups(groupsData);
+  }, [groupsData]);
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetchGroups();
+    setRefreshing(false);
+  };
   // ── Create ───────────────────────────────────────────────────────────────────
   const handleCreate = async (name) => {
     try {
@@ -279,7 +267,7 @@ export default function Groups() {
       );
       if (res.ok) {
         setShowCreate(false);
-        fetchGroups();
+        refetchGroups();
       } else {
         const data = await res.json().catch(() => ({}));
         Alert.alert("Error", data?.message || `Status ${res.status}`);
@@ -298,7 +286,7 @@ export default function Groups() {
       );
       if (res.ok) {
         setShowJoin(false);
-        fetchGroups();
+        refetchGroups();
       } else {
         const data = await res.json().catch(() => ({}));
         Alert.alert("Error", data?.message || `Status ${res.status}`);
@@ -325,7 +313,7 @@ export default function Groups() {
                 `/v1/groups/leave/${encodeURIComponent(group.id)}`,
                 { method: "POST" }
               );
-              if (res.ok) fetchGroups();
+              if (res.ok) refetchGroups();
               else {
                 const data = await res.json().catch(() => ({}));
                 Alert.alert("Error", data?.message || `Status ${res.status}`);
@@ -360,7 +348,7 @@ export default function Groups() {
                   user_to_kick_id: member.id,
                 }),
               });
-              if (res.ok) fetchGroups();
+              if (res.ok) refetchGroups();
               else {
                 const data = await res.json().catch(() => ({}));
                 Alert.alert("Error", data?.message || `Status ${res.status}`);
@@ -399,11 +387,7 @@ export default function Groups() {
       </View>
 
       {/* Content */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator color="#7C6EF5" size="large" />
-        </View>
-      ) : (
+      {
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
@@ -413,7 +397,7 @@ export default function Groups() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => fetchGroups(true)}
+              onRefresh={() => handleRefresh()}
               tintColor="#7C6EF5"
             />
           }
@@ -435,7 +419,7 @@ export default function Groups() {
             ))
           )}
         </ScrollView>
-      )}
+      }
 
       {/* Create modal */}
       <ActionModal

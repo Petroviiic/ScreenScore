@@ -1,28 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
-import * as SecureStore from "expo-secure-store";
 import { useRouter } from "expo-router";
+import { useAppData } from "@/contexts/AppDataContext";
 import Login from "@/app/components/Login";
 
 export default function Index() {
-  const [isLoggedIn, setIsLoggedIn] = useState(null);
+  const { isReady, isAuthenticated, initializeApp } = useAppData();
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = await SecureStore.getItemAsync("jwt_token");
-      setIsLoggedIn(!!token);
-    };
-    checkAuth();
+    initializeApp();
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn === true) {
+    if (isReady && isAuthenticated) {
       router.replace("/(tabs)");
     }
-  }, [isLoggedIn]);
+  }, [isReady, isAuthenticated]);
 
-  if (isLoggedIn === null || isLoggedIn === true) {
+  if (!isReady || isAuthenticated) {
     return (
       <View
         style={{

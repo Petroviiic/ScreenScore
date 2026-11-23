@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  NativeModules,
-  Platform,
   AppState,
   Dimensions,
   ActivityIndicator,
@@ -13,29 +11,12 @@ import {
   Linking,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import * as Application from "expo-application";
-const { ScreenTimeModule } = NativeModules;
 import { styles, rankColor } from "@/assets/styles/home.styles";
-const { width } = Dimensions.get("window");
-import * as SecureStore from "expo-secure-store";
-import {
-  getMessaging,
-  onMessage,
-  setBackgroundMessageHandler,
-} from "@react-native-firebase/messaging";
-const API_URL = "https://shenika-ovarian-unpiratically.ngrok-free.dev";
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const DAY_FULL = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
+import { useAppData } from "@/contexts/AppDataContext";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const { width } = Dimensions.get("window");
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDuration(ms) {
   const totalMinutes = Math.floor(ms / 60000);
@@ -55,185 +36,50 @@ function formatDurationLong(ms) {
   return `${hours} hr ${minutes} min`;
 }
 
-// Returns days from Monday to Sunday of the current week
-function getCurrentWeekDays() {
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ...
-  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - daysFromMonday);
-  monday.setHours(0, 0, 0, 0);
+// ─── Main Component ────────────────────────────────────────────────────────────
 
-  const days = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    days.push(d);
-  }
-  return days;
-}
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 export default function Home() {
-  const [hasPermission, setHasPermission] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [weekData, setWeekData] = useState([]);
+  const { weekData, todayIndex, hasPermission, refetchScreenTime } =
+    useAppData();
   const [selectedDay, setSelectedDay] = useState(null);
-  const [todayIndex, setTodayIndex] = useState(0);
 
-  // ── Check & request permission ──────────────────────────────────────────────
-  const checkPermission = useCallback(async () => {
-    try {
-      const granted = await ScreenTimeModule.checkPermission();
-      console.log("checkPermission result:", granted);
-      setHasPermission(granted);
-      return granted;
-    } catch (err) {
-      console.log("Permission error:", err);
-      setHasPermission(false);
-      return false;
+  // Postavi selectedDay na today kad weekData stigne
+  useEffect(() => {
+    if (weekData.length > 0 && selectedDay === null) {
+      setSelectedDay(todayIndex);
     }
+  }, [weekData, todayIndex]);
+
+  // Refetch kada se korisnik vrati na tab
+  useFocusEffect(
+    useCallback(() => {
+      refetchScreenTime();
+    }, [])
+  );
+
+  // Refetch kada se app vrati u foreground
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") refetchScreenTime();
+    });
+    return () => sub.remove();
   }, []);
 
   const requestPermission = useCallback(async () => {
     await Linking.sendIntent("android.settings.USAGE_ACCESS_SETTINGS");
   }, []);
 
-  // ── Send data to backend ──────────────────────
-  const isSyncing = useRef(false);
-
-  const syncToBackend = useCallback(async (stats) => {
-    if (isSyncing.current) return;
-    isSyncing.current = true;
-    const token = await SecureStore.getItemAsync("jwt_token");
-    const deviceId = Application.getAndroidId();
-    try {
-      await fetch(`${API_URL}/v1/stats/sync-stats`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          screen_time: Math.floor(stats.totalTimeMs / 60000),
-          recorded_at: new Date().toISOString(),
-          device_id: deviceId,
-        }),
-      });
-    } catch (err) {
-      console.log("Sync error:", err);
-    } finally {
-      isSyncing.current = false;
-    }
-  }, []);
-
-  // ── Fetch screen-time data for current week (Mon-Sun) ──────────────────────
-  const fetchWeekData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const stats = await ScreenTimeModule.getWeeklyStats();
-
-      if (!stats) {
-        setLoading(false);
-        return;
-      }
-
-      // Send data when user opens app
-      await syncToBackend(stats);
-
-      const days = getCurrentWeekDays();
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const result = [];
-
-      for (let i = 0; i < 7; i++) {
-        const date = days[i];
-        const isFuture = date > today;
-
-        if (isFuture) {
-          result.push({
-            date,
-            dayLabel: DAYS[i],
-            dayFull: DAY_FULL[i],
-            totalMs: 0,
-            apps: [],
-            isFuture: true,
-          });
-        } else {
-          const daysAgo = Math.round((today - date) / (1000 * 60 * 60 * 24));
-          const apps = await ScreenTimeModule.getAppsForDay(daysAgo);
-          result.push({
-            date,
-            dayLabel: DAYS[i],
-            dayFull: DAY_FULL[i],
-            totalMs: stats.weeklyData[6 - daysAgo] || 0,
-            apps: apps || [],
-            isFuture: false,
-          });
-        }
-      }
-
-      // Today index — 0=Mon, 6=Sun
-      const todayDay = today.getDay();
-      const todayIdx = todayDay === 0 ? 6 : todayDay - 1;
-      setTodayIndex(todayIdx);
-      setSelectedDay(todayIdx);
-      setWeekData(result);
-    } catch (err) {
-      console.error("Failed to fetch usage stats:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // ── Lifecycle ───────────────────────────────────────────────────────────────
-  useFocusEffect(
-    useCallback(() => {
-      (async () => {
-        const ok = await checkPermission();
-        if (ok) fetchWeekData();
-        else setLoading(false);
-      })();
-    }, [])
-  );
-
-  useEffect(() => {
-    const sub = AppState.addEventListener("change", async (state) => {
-      if (state === "active") {
-        const ok = await checkPermission();
-        if (ok) fetchWeekData();
-      }
-    });
-    return () => sub.remove();
-  }, []);
-
-  /*// sync request se salje kada je aplikacija upaljena
-  const messagingInstance = getMessaging();
-  useEffect(() => {
-    const unsubscribe = onMessage(messagingInstance, async (remoteMessage) => {
-      if (remoteMessage.data?.type === "sync") {
-        const stats = await ScreenTimeModule.getWeeklyStats();
-        if (!stats) return;
-        await syncToBackend(stats);
-      }
-    });
-    return unsubscribe;
-  }, []);*/
-
-  // ── Derived values ──────────────────────────────────────────────────────────
+  // ── Derived values ─────────────────────────────────────────────────────────
   const maxMs = Math.max(...weekData.map((d) => d.totalMs), 1);
   const selected = weekData[selectedDay] ?? null;
-
-  // Average only over past days (not future)
   const pastDays = weekData.filter((d) => !d.isFuture && d.totalMs > 0);
   const weekAvgMs =
     pastDays.length > 0
       ? pastDays.reduce((s, d) => s + d.totalMs, 0) / pastDays.length
       : 0;
 
-  // ── No permission screen ────────────────────────────────────────────────────
-  if (!hasPermission && !loading) {
+  // ── No permission ──────────────────────────────────────────────────────────
+  if (!hasPermission && weekData.length === 0) {
     return (
       <View style={styles.permissionContainer}>
         <StatusBar barStyle="light-content" />
@@ -253,8 +99,8 @@ export default function Home() {
     );
   }
 
-  // ── Loading screen ──────────────────────────────────────────────────────────
-  if (loading) {
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (weekData.length === 0) {
     return (
       <View style={styles.loadingContainer}>
         <StatusBar barStyle="light-content" />
@@ -264,7 +110,7 @@ export default function Home() {
     );
   }
 
-  // ── Main UI ─────────────────────────────────────────────────────────────────
+  // ── Main UI ────────────────────────────────────────────────────────────────
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
@@ -290,7 +136,6 @@ export default function Home() {
               const isSelected = i === selectedDay;
               const isToday = i === todayIndex;
               const barHeight = Math.max((day.totalMs / maxMs) * 130, 4);
-
               return (
                 <TouchableOpacity
                   key={i}
@@ -357,7 +202,6 @@ export default function Home() {
               )}
             </View>
 
-            {/* App list */}
             {selected.apps.length === 0 ? (
               <Text style={styles.noDataText}>No app usage recorded.</Text>
             ) : (
@@ -371,7 +215,6 @@ export default function Home() {
                   (app.packageName
                     ? app.packageName.split(".").pop()
                     : "Unknown");
-
                 return (
                   <View key={app.packageName} style={styles.appRow}>
                     <View style={styles.appLeft}>

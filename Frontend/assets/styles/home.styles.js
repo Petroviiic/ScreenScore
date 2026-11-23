@@ -937,3 +937,261 @@ export const groupsStyles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+// shop styles
+export const shopStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#0A0A0A",
+  },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 56,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1A1A1A",
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#F9FAFB",
+    letterSpacing: -0.5,
+  },
+  headerSub: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  pointsChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#1C1A0F",
+    borderWidth: 1,
+    borderColor: "#78350F",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  coinEmoji: {
+    fontSize: 16,
+  },
+  pointsText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#F59E0B",
+  },
+
+  // Filter tabs
+  filterRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  filterTab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#1F1F1F",
+    backgroundColor: "#111",
+  },
+  filterIcon: {
+    fontSize: 11,
+    color: "#555",
+  },
+  filterLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#4B5563",
+    letterSpacing: 0.3,
+  },
+  filterCount: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  filterCountText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+
+  // List
+  list: {
+    padding: 16,
+    gap: 12,
+    paddingBottom: 32,
+  },
+
+  // Card
+  card: {
+    backgroundColor: "#111111",
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  cardOwned: {
+    opacity: 0.55,
+  },
+  rarityBar: {
+    height: 3,
+    width: "100%",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 4,
+  },
+  rarityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  rarityIcon: {
+    fontSize: 11,
+  },
+  rarityLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  ownedBadge: {
+    backgroundColor: "#14532D",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  ownedText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#4ADE80",
+    letterSpacing: 0.8,
+  },
+
+  // Message
+  messageText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#E5E7EB",
+    fontStyle: "italic",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    lineHeight: 22,
+  },
+  messageTextOwned: {
+    color: "#4B5563",
+  },
+
+  // Footer
+  cardFooter: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 4,
+  },
+  buyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#2D2D2D",
+    borderRadius: 10,
+    paddingVertical: 10,
+    backgroundColor: "#0D0D0D",
+  },
+  coinIcon: {
+    fontSize: 15,
+  },
+  buyButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  ownedFooterText: {
+    fontSize: 13,
+    color: "#374151",
+    fontWeight: "500",
+  },
+
+  // States
+  centered: {
+    flex: 1,
+    backgroundColor: "#0A0A0A",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+  },
+  loadingText: {
+    color: "#6B7280",
+    fontSize: 14,
+    marginTop: 8,
+  },
+  errorIcon: {
+    fontSize: 40,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#F87171",
+  },
+  errorSub: {
+    fontSize: 13,
+    color: "#6B7280",
+    textAlign: "center",
+    paddingHorizontal: 32,
+  },
+  retryBtn: {
+    marginTop: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: "#1F2937",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+  retryText: {
+    color: "#E5E7EB",
+    fontWeight: "600",
+  },
+
+  // Empty
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#374151",
+  },
+  emptySub: {
+    fontSize: 13,
+    color: "#4B5563",
+    textAlign: "center",
+  },
+});
