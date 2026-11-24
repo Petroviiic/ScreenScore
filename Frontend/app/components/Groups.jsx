@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { groupsStyles as styles } from "@/assets/styles/home.styles";
+import { useAppData } from "@/contexts/AppDataContext";
 const API_URL = "https://shenika-ovarian-unpiratically.ngrok-free.dev";
 
 async function authFetch(path, options = {}) {
@@ -27,6 +28,25 @@ async function authFetch(path, options = {}) {
       ...(options.headers || {}),
     },
   });
+}
+
+// ─── Validacija (ista pravila kao na backendu: groups.go isValidString) ──────
+const GROUP_NAME_MAX = 15;
+const INVITE_CODE_MAX = 10;
+const ALPHANUMERIC = /^[a-zA-Z0-9]+$/;
+
+function validateGroupName(name) {
+  if (name.length < 3 || name.length > GROUP_NAME_MAX)
+    return `Group name must be 3–${GROUP_NAME_MAX} characters long.`;
+  if (!ALPHANUMERIC.test(name))
+    return "Group name can only contain letters (a–z) and numbers, without spaces.";
+  return null;
+}
+
+function validateInviteCode(code) {
+  if (code.length < 3 || code.length > INVITE_CODE_MAX || !ALPHANUMERIC.test(code))
+    return "Invalid invite code. Check the code and try again.";
+  return null;
 }
 
 // ─── Icons (simple SVG-style unicode replacements) ────────────────────────────
@@ -190,9 +210,10 @@ function ActionModal({
   const handleConfirm = async () => {
     if (!value.trim()) return;
     setLoading(true);
-    await onConfirm(value.trim());
+    const success = await onConfirm(value.trim());
     setLoading(false);
-    setValue("");
+    // brisi unos samo ako je uspjelo, da korisnik moze ispraviti gresku
+    if (success) setValue("");
   };
 
   const handleClose = () => {
@@ -237,8 +258,8 @@ function ActionModal({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Groups() {
-  const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { groupsData, refetchGroups } = useAppData();
+  const [groups, setGroups] = useState(groupsData);
   const [refreshing, setRefreshing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
 
@@ -248,30 +269,22 @@ export default function Groups() {
 
   // ── Fetch groups ─────────────────────────────────────────────────────────────
 
-  const fetchGroups = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    try {
-      const res = await authFetch("/v1/groups/get_user_groups");
-      if (res.ok) {
-        const data = await res.json();
-        const arr = Array.isArray(data.data) ? data.data : [];
-        setGroups(arr);
-      }
-    } catch (err) {
-      console.log("fetch groups error:", err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchGroups();
-  }, []);
+    setGroups(groupsData);
+  }, [groupsData]);
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetchGroups();
+    setRefreshing(false);
+  };
   // ── Create ───────────────────────────────────────────────────────────────────
   const handleCreate = async (name) => {
+    const validationError = validateGroupName(name);
+    if (validationError) {
+      Alert.alert("Invalid name", validationError);
+      return;
+    }
     try {
       const res = await authFetch(
         `/v1/groups/create/${encodeURIComponent(name)}`,
@@ -279,10 +292,11 @@ export default function Groups() {
       );
       if (res.ok) {
         setShowCreate(false);
-        fetchGroups();
+        refetchGroups();
+        return true;
       } else {
         const data = await res.json().catch(() => ({}));
-        Alert.alert("Error", data?.message || `Status ${res.status}`);
+        Alert.alert("Error", data?.error || `Status ${res.status}`);
       }
     } catch (err) {
       Alert.alert("Error", err.message);
@@ -291,6 +305,11 @@ export default function Groups() {
 
   // ── Join ─────────────────────────────────────────────────────────────────────
   const handleJoin = async (code) => {
+    const validationError = validateInviteCode(code);
+    if (validationError) {
+      Alert.alert("Invalid code", validationError);
+      return;
+    }
     try {
       const res = await authFetch(
         `/v1/groups/join/${encodeURIComponent(code)}`,
@@ -298,10 +317,11 @@ export default function Groups() {
       );
       if (res.ok) {
         setShowJoin(false);
-        fetchGroups();
+        refetchGroups();
+        return true;
       } else {
         const data = await res.json().catch(() => ({}));
-        Alert.alert("Error", data?.message || `Status ${res.status}`);
+        Alert.alert("Error", data?.error || `Status ${res.status}`);
       }
     } catch (err) {
       Alert.alert("Error", err.message);
@@ -325,10 +345,10 @@ export default function Groups() {
                 `/v1/groups/leave/${encodeURIComponent(group.id)}`,
                 { method: "POST" }
               );
-              if (res.ok) fetchGroups();
+              if (res.ok) refetchGroups();
               else {
                 const data = await res.json().catch(() => ({}));
-                Alert.alert("Error", data?.message || `Status ${res.status}`);
+                Alert.alert("Error", data?.error || `Status ${res.status}`);
               }
             } catch (err) {
               Alert.alert("Error", err.message);
@@ -360,10 +380,10 @@ export default function Groups() {
                   user_to_kick_id: member.id,
                 }),
               });
-              if (res.ok) fetchGroups();
+              if (res.ok) refetchGroups();
               else {
                 const data = await res.json().catch(() => ({}));
-                Alert.alert("Error", data?.message || `Status ${res.status}`);
+                Alert.alert("Error", data?.error || `Status ${res.status}`);
               }
             } catch (err) {
               Alert.alert("Error", err.message);
@@ -399,11 +419,7 @@ export default function Groups() {
       </View>
 
       {/* Content */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator color="#7C6EF5" size="large" />
-        </View>
-      ) : (
+      {
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
@@ -413,7 +429,7 @@ export default function Groups() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => fetchGroups(true)}
+              onRefresh={() => handleRefresh()}
               tintColor="#7C6EF5"
             />
           }
@@ -435,7 +451,7 @@ export default function Groups() {
             ))
           )}
         </ScrollView>
-      )}
+      }
 
       {/* Create modal */}
       <ActionModal
