@@ -111,6 +111,47 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingTop: 24,
   },
+
+  // ── Week navigation (swipe / strelice) ──
+  weekNav: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  weekNavBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#1F1F30",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  weekNavArrow: {
+    color: "#7C6EF5",
+    fontSize: 22,
+    fontWeight: "700",
+    lineHeight: 24,
+  },
+  weekNavArrowDisabled: {
+    color: "#33334A",
+  },
+  weekNavLabel: {
+    color: "#C8C8DC",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  chartLoading: {
+    height: 200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noWeekDataText: {
+    color: "#6A6A80",
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 14,
+    lineHeight: 17,
+  },
   barCol: {
     alignItems: "center",
     flex: 1,

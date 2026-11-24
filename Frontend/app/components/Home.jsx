@@ -1,20 +1,47 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   AppState,
-  Dimensions,
   ActivityIndicator,
   StatusBar,
   Linking,
+  PanResponder,
+  Animated,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { styles, rankColor } from "@/assets/styles/home.styles";
-import { useAppData } from "@/contexts/AppDataContext";
+import { useAppData, getWeekDays } from "@/contexts/AppDataContext";
 
-const { width } = Dimensions.get("window");
+// Koliko sedmica unazad korisnik moze ici. Android cuva detaljnu istoriju
+// koristenja ograniceno vrijeme, pa dalje od ovoga nema smisla.
+const MAX_WEEKS_BACK = 4;
+const SWIPE_THRESHOLD = 50;
+
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function weekLabel(weekOffset) {
+  if (weekOffset === 0) return "This week";
+  if (weekOffset === 1) return "Last week";
+  const days = getWeekDays(weekOffset);
+  const fmt = (d) => `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  return `${fmt(days[0])} – ${fmt(days[6])}`;
+}
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -39,9 +66,20 @@ function formatDurationLong(ms) {
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const { weekData, todayIndex, hasPermission, refetchScreenTime } =
-    useAppData();
+  const {
+    weekData,
+    todayIndex,
+    hasPermission,
+    refetchScreenTime,
+    fetchPastWeek,
+  } = useAppData();
   const [selectedDay, setSelectedDay] = useState(null);
+
+  // ── Sedmice: 0 = ova sedmica, 1 = prosla... ──────────────────────────────
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [pastWeek, setPastWeek] = useState(null); // podaci kad je weekOffset > 0
+  const weekOffsetRef = useRef(0); // trenutni offset za PanResponder
+  const translateX = useRef(new Animated.Value(0)).current;
 
   // Postavi selectedDay na today kad weekData stigne
   useEffect(() => {
@@ -50,11 +88,90 @@ export default function Home() {
     }
   }, [weekData, todayIndex]);
 
+  // Ucitaj izabranu proslu sedmicu (iz kesa je instant) i unaprijed ucitaj
+  // jos jednu stariju, da sljedeci swipe bude brz.
+  // fetchPastWeek namjerno nije u dependency listi: iz contexta stize kao nova
+  // funkcija pri svakom renderu, pa bi se efekat vrtio u krug.
+  useEffect(() => {
+    if (weekOffset === 0) {
+      setPastWeek(null);
+      return;
+    }
+    let cancelled = false;
+    setPastWeek(null);
+    fetchPastWeek(weekOffset).then((data) => {
+      if (cancelled) return;
+      setPastWeek(data ?? []);
+      if (weekOffset < MAX_WEEKS_BACK) fetchPastWeek(weekOffset + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [weekOffset]);
+
+  // delta: +1 = starija sedmica, -1 = novija
+  const changeWeek = useCallback(
+    (delta) => {
+      const next = weekOffsetRef.current + delta;
+      if (next < 0 || next > MAX_WEEKS_BACK) {
+        // na granici: samo vrati graf na mjesto
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+        return;
+      }
+      weekOffsetRef.current = next;
+      setWeekOffset(next);
+      // za proslu sedmicu oznaci nedjelju, za ovu danasnji dan
+      setSelectedDay(next === 0 ? todayIndex : 6);
+      // nova sedmica "uleti" u smjeru pokreta prsta
+      // (starija dolazi s lijeva, novija s desna)
+      translateX.setValue(delta > 0 ? -60 : 60);
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+        speed: 20,
+      }).start();
+    },
+    [todayIndex, translateX],
+  );
+  // PanResponder se pravi jednom, pa preko ref-a uvijek zove najnoviji changeWeek
+  const changeWeekRef = useRef(changeWeek);
+  useEffect(() => {
+    changeWeekRef.current = changeWeek;
+  }, [changeWeek]);
+
+  // Prst desno = prethodna sedmica, prst lijevo = sljedeca (novija), kao u kalendaru.
+  // Hvata samo horizontalne pokrete, pa vertikalni scroll radi normalno.
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderMove: (_, g) => translateX.setValue(g.dx * 0.4),
+      onPanResponderRelease: (_, g) => {
+        if (g.dx >= SWIPE_THRESHOLD) changeWeekRef.current(1);
+        else if (g.dx <= -SWIPE_THRESHOLD) changeWeekRef.current(-1);
+        else
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+      },
+      onPanResponderTerminate: () =>
+        Animated.spring(translateX, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start(),
+    }),
+  ).current;
+
   // Refetch kada se korisnik vrati na tab
   useFocusEffect(
     useCallback(() => {
       refetchScreenTime();
-    }, [])
+    }, []),
   );
 
   // Refetch kada se app vrati u foreground
@@ -70,9 +187,15 @@ export default function Home() {
   }, []);
 
   // ── Derived values ─────────────────────────────────────────────────────────
-  const maxMs = Math.max(...weekData.map((d) => d.totalMs), 1);
-  const selected = weekData[selectedDay] ?? null;
-  const pastDays = weekData.filter((d) => !d.isFuture && d.totalMs > 0);
+  // sedmica koja se trenutno prikazuje
+  const shownWeek = weekOffset === 0 ? weekData : (pastWeek ?? []);
+  const isLoadingWeek = weekOffset > 0 && pastWeek === null;
+  const isCurrentWeek = weekOffset === 0;
+  const weekHasData = shownWeek.some((d) => d.totalMs > 0);
+
+  const maxMs = Math.max(...shownWeek.map((d) => d.totalMs), 1);
+  const selected = shownWeek[selectedDay] ?? null;
+  const pastDays = shownWeek.filter((d) => !d.isFuture && d.totalMs > 0);
   const weekAvgMs =
     pastDays.length > 0
       ? pastDays.reduce((s, d) => s + d.totalMs, 0) / pastDays.length
@@ -120,7 +243,7 @@ export default function Home() {
       >
         {/* ── Header ── */}
         <View style={styles.header}>
-          <Text style={styles.headerSub}>This week</Text>
+          <Text style={styles.headerSub}>{weekLabel(weekOffset)}</Text>
           <Text style={styles.headerTitle}>Screen Time</Text>
           <View style={styles.avgPill}>
             <Text style={styles.avgText}>
@@ -129,61 +252,113 @@ export default function Home() {
           </View>
         </View>
 
-        {/* ── Bar Chart ── */}
-        <View style={styles.card}>
-          <View style={styles.chartRow}>
-            {weekData.map((day, i) => {
-              const isSelected = i === selectedDay;
-              const isToday = i === todayIndex;
-              const barHeight = Math.max((day.totalMs / maxMs) * 130, 4);
-              return (
-                <TouchableOpacity
-                  key={i}
-                  style={styles.barCol}
-                  onPress={() => !day.isFuture && setSelectedDay(i)}
-                  activeOpacity={day.isFuture ? 1 : 0.75}
-                >
-                  <Text
-                    style={[
-                      styles.barValue,
-                      isSelected && styles.barValueSelected,
-                    ]}
-                  >
-                    {day.totalMs > 0 ? formatDuration(day.totalMs) : ""}
-                  </Text>
-                  <View style={styles.barTrack}>
-                    <View
-                      style={[
-                        styles.bar,
-                        { height: barHeight },
-                        isSelected && styles.barSelected,
-                        isToday && !isSelected && styles.barToday,
-                        day.isFuture && styles.barFuture,
-                      ]}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.barLabel,
-                      isSelected && styles.barLabelSelected,
-                    ]}
-                  >
-                    {day.dayLabel}
-                  </Text>
-                  {isToday && <View style={styles.todayDot} />}
-                </TouchableOpacity>
-              );
-            })}
+        {/* ── Bar Chart (swipe lijevo/desno mijenja sedmicu) ── */}
+        <View style={styles.card} {...panResponder.panHandlers}>
+          {/* Navigacija sedmica: strelice za one koji ne swipe-uju */}
+          <View style={styles.weekNav}>
+            <TouchableOpacity
+              style={styles.weekNavBtn}
+              onPress={() => changeWeek(1)}
+              disabled={weekOffset >= MAX_WEEKS_BACK}
+              hitSlop={10}
+            >
+              <Text
+                style={[
+                  styles.weekNavArrow,
+                  weekOffset >= MAX_WEEKS_BACK && styles.weekNavArrowDisabled,
+                ]}
+              >
+                ‹
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.weekNavLabel}>{weekLabel(weekOffset)}</Text>
+            <TouchableOpacity
+              style={styles.weekNavBtn}
+              onPress={() => changeWeek(-1)}
+              disabled={isCurrentWeek}
+              hitSlop={10}
+            >
+              <Text
+                style={[
+                  styles.weekNavArrow,
+                  isCurrentWeek && styles.weekNavArrowDisabled,
+                ]}
+              >
+                ›
+              </Text>
+            </TouchableOpacity>
           </View>
+
+          {isLoadingWeek ? (
+            <View style={styles.chartLoading}>
+              <ActivityIndicator color="#7C6EF5" />
+            </View>
+          ) : (
+            <Animated.View
+              style={[styles.chartRow, { transform: [{ translateX }] }]}
+            >
+              {shownWeek.map((day, i) => {
+                const isSelected = i === selectedDay;
+                const isToday = isCurrentWeek && i === todayIndex;
+                const barHeight = Math.max((day.totalMs / maxMs) * 130, 4);
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.barCol}
+                    onPress={() => !day.isFuture && setSelectedDay(i)}
+                    activeOpacity={day.isFuture ? 1 : 0.75}
+                  >
+                    <Text
+                      style={[
+                        styles.barValue,
+                        isSelected && styles.barValueSelected,
+                      ]}
+                    >
+                      {day.totalMs > 0 ? formatDuration(day.totalMs) : ""}
+                    </Text>
+                    <View style={styles.barTrack}>
+                      <View
+                        style={[
+                          styles.bar,
+                          { height: barHeight },
+                          isSelected && styles.barSelected,
+                          isToday && !isSelected && styles.barToday,
+                          day.isFuture && styles.barFuture,
+                        ]}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.barLabel,
+                        isSelected && styles.barLabelSelected,
+                      ]}
+                    >
+                      {day.dayLabel}
+                    </Text>
+                    {isToday && <View style={styles.todayDot} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </Animated.View>
+          )}
+
+          {!isLoadingWeek && !isCurrentWeek && !weekHasData && (
+            <Text style={styles.noWeekDataText}>
+              No usage data for this week. Android keeps detailed usage history
+              only for a limited time.
+            </Text>
+          )}
         </View>
 
         {/* ── Selected Day Detail ── */}
-        {selected && !selected.isFuture && (
+        {!isLoadingWeek && selected && !selected.isFuture && (
           <View style={styles.detailSection}>
             <View style={styles.detailHeader}>
               <View>
                 <Text style={styles.detailDay}>
-                  {selectedDay === todayIndex ? "Today" : selected.dayFull}
+                  {isCurrentWeek && selectedDay === todayIndex
+                    ? "Today"
+                    : selected.dayFull}
                 </Text>
                 <Text style={styles.detailTotal}>
                   {formatDurationLong(selected.totalMs)}
@@ -277,21 +452,23 @@ export default function Home() {
             <Text style={styles.summaryValue}>
               {(() => {
                 const allApps = {};
-                weekData.forEach((d) =>
+                shownWeek.forEach((d) =>
                   d.apps.forEach((a) => {
                     allApps[a.packageName] =
                       (allApps[a.packageName] || 0) + a.totalTimeMs;
-                  })
+                  }),
                 );
                 const top = Object.entries(allApps).sort(
-                  (a, b) => b[1] - a[1]
+                  (a, b) => b[1] - a[1],
                 )[0];
                 if (!top) return "—";
                 const name = top[0].split(".").pop();
                 return name.charAt(0).toUpperCase() + name.slice(1);
               })()}
             </Text>
-            <Text style={styles.summarySubValue}>this week</Text>
+            <Text style={styles.summarySubValue}>
+              {weekLabel(weekOffset).toLowerCase()}
+            </Text>
           </View>
         </View>
 

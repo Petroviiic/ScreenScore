@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { NativeModules } from "react-native";
 import * as Application from "expo-application";
@@ -18,12 +18,15 @@ const DAY_FULL = [
   "Sunday",
 ];
 
-function getCurrentWeekDays() {
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+// weekOffset: 0 = ova sedmica, 1 = prosla, 2 = pretprosla...
+export function getWeekDays(weekOffset = 0) {
   const today = new Date();
   const dayOfWeek = today.getDay();
   const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   const monday = new Date(today);
-  monday.setDate(today.getDate() - daysFromMonday);
+  monday.setDate(today.getDate() - daysFromMonday - weekOffset * 7);
   monday.setHours(0, 0, 0, 0);
   const days = [];
   for (let i = 0; i < 7; i++) {
@@ -81,43 +84,74 @@ export default function AppDataProvider({ children }) {
 
       if (sync) syncToBackend(stats, token);
 
-      const days = getCurrentWeekDays();
+      const result = await buildWeek(0, stats.weeklyData);
+
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const result = [];
-      for (let i = 0; i < 7; i++) {
-        const date = days[i];
-        const isFuture = date > today;
-        if (isFuture) {
-          result.push({
-            date,
-            dayLabel: DAYS[i],
-            dayFull: DAY_FULL[i],
-            totalMs: 0,
-            apps: [],
-            isFuture: true,
-          });
-        } else {
-          const daysAgo = Math.round((today - date) / (1000 * 60 * 60 * 24));
-          const apps = await ScreenTimeModule.getAppsForDay(daysAgo);
-          result.push({
-            date,
-            dayLabel: DAYS[i],
-            dayFull: DAY_FULL[i],
-            totalMs: stats.weeklyData[6 - daysAgo] || 0,
-            apps: apps || [],
-            isFuture: false,
-          });
-        }
-      }
-
       const todayDay = today.getDay();
       const todayIdx = todayDay === 0 ? 6 : todayDay - 1;
       setTodayIndex(todayIdx);
       setWeekData(result);
     } catch (err) {
       console.error("fetchScreenTimeData error:", err);
+    }
+  }
+
+  // Pravi podatke za 7 dana jedne sedmice (pon-ned).
+  // weeklyData (iz getWeeklyStats) postoji samo za zadnjih 7 dana; za starije
+  // dane ukupno vrijeme racunamo kao zbir vremena aplikacija tog dana.
+  async function buildWeek(weekOffset, weeklyData = null) {
+    const days = getWeekDays(weekOffset);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const result = [];
+    for (let i = 0; i < 7; i++) {
+      const date = days[i];
+      if (date > today) {
+        result.push({
+          date,
+          dayLabel: DAYS[i],
+          dayFull: DAY_FULL[i],
+          totalMs: 0,
+          apps: [],
+          isFuture: true,
+        });
+        continue;
+      }
+
+      const daysAgo = Math.round((today - date) / DAY_MS);
+      const apps = (await ScreenTimeModule.getAppsForDay(daysAgo)) || [];
+      const totalMs =
+        weeklyData && daysAgo <= 6
+          ? weeklyData[6 - daysAgo] || 0
+          : apps.reduce((sum, a) => sum + a.totalTimeMs, 0);
+
+      result.push({
+        date,
+        dayLabel: DAYS[i],
+        dayFull: DAY_FULL[i],
+        totalMs,
+        apps,
+        isFuture: false,
+      });
+    }
+    return result;
+  }
+
+  // Prosle sedmice se vise ne mijenjaju, pa ih pamtimo. Kljuc je datum
+  // ponedjeljka (ne offset), da kes ostane tacan i kad pocne nova sedmica.
+  const pastWeeksCache = useRef({});
+
+  async function fetchPastWeek(weekOffset) {
+    const key = getWeekDays(weekOffset)[0].toDateString();
+    if (pastWeeksCache.current[key]) return pastWeeksCache.current[key];
+    try {
+      const data = await buildWeek(weekOffset);
+      pastWeeksCache.current[key] = data;
+      return data;
+    } catch (err) {
+      console.log("fetchPastWeek error:", err);
+      return null;
     }
   }
 
@@ -179,6 +213,7 @@ export default function AppDataProvider({ children }) {
         groupsData,
         initializeApp,
         refetchScreenTime,
+        fetchPastWeek,
         refetchGroups,
       }}
     >
