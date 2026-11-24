@@ -30,6 +30,25 @@ async function authFetch(path, options = {}) {
   });
 }
 
+// ─── Validacija (ista pravila kao na backendu: groups.go isValidString) ──────
+const GROUP_NAME_MAX = 15;
+const INVITE_CODE_MAX = 10;
+const ALPHANUMERIC = /^[a-zA-Z0-9]+$/;
+
+function validateGroupName(name) {
+  if (name.length < 3 || name.length > GROUP_NAME_MAX)
+    return `Group name must be 3–${GROUP_NAME_MAX} characters long.`;
+  if (!ALPHANUMERIC.test(name))
+    return "Group name can only contain letters (a–z) and numbers, without spaces.";
+  return null;
+}
+
+function validateInviteCode(code) {
+  if (code.length < 3 || code.length > INVITE_CODE_MAX || !ALPHANUMERIC.test(code))
+    return "Invalid invite code. Check the code and try again.";
+  return null;
+}
+
 // ─── Icons (simple SVG-style unicode replacements) ────────────────────────────
 const Icon = ({ name, size = 16, color = "#fff" }) => {
   const icons = {
@@ -191,9 +210,10 @@ function ActionModal({
   const handleConfirm = async () => {
     if (!value.trim()) return;
     setLoading(true);
-    await onConfirm(value.trim());
+    const success = await onConfirm(value.trim());
     setLoading(false);
-    setValue("");
+    // brisi unos samo ako je uspjelo, da korisnik moze ispraviti gresku
+    if (success) setValue("");
   };
 
   const handleClose = () => {
@@ -260,6 +280,11 @@ export default function Groups() {
   };
   // ── Create ───────────────────────────────────────────────────────────────────
   const handleCreate = async (name) => {
+    const validationError = validateGroupName(name);
+    if (validationError) {
+      Alert.alert("Invalid name", validationError);
+      return;
+    }
     try {
       const res = await authFetch(
         `/v1/groups/create/${encodeURIComponent(name)}`,
@@ -268,9 +293,10 @@ export default function Groups() {
       if (res.ok) {
         setShowCreate(false);
         refetchGroups();
+        return true;
       } else {
         const data = await res.json().catch(() => ({}));
-        Alert.alert("Error", data?.message || `Status ${res.status}`);
+        Alert.alert("Error", data?.error || `Status ${res.status}`);
       }
     } catch (err) {
       Alert.alert("Error", err.message);
@@ -279,6 +305,11 @@ export default function Groups() {
 
   // ── Join ─────────────────────────────────────────────────────────────────────
   const handleJoin = async (code) => {
+    const validationError = validateInviteCode(code);
+    if (validationError) {
+      Alert.alert("Invalid code", validationError);
+      return;
+    }
     try {
       const res = await authFetch(
         `/v1/groups/join/${encodeURIComponent(code)}`,
@@ -287,9 +318,10 @@ export default function Groups() {
       if (res.ok) {
         setShowJoin(false);
         refetchGroups();
+        return true;
       } else {
         const data = await res.json().catch(() => ({}));
-        Alert.alert("Error", data?.message || `Status ${res.status}`);
+        Alert.alert("Error", data?.error || `Status ${res.status}`);
       }
     } catch (err) {
       Alert.alert("Error", err.message);
@@ -316,7 +348,7 @@ export default function Groups() {
               if (res.ok) refetchGroups();
               else {
                 const data = await res.json().catch(() => ({}));
-                Alert.alert("Error", data?.message || `Status ${res.status}`);
+                Alert.alert("Error", data?.error || `Status ${res.status}`);
               }
             } catch (err) {
               Alert.alert("Error", err.message);
@@ -351,7 +383,7 @@ export default function Groups() {
               if (res.ok) refetchGroups();
               else {
                 const data = await res.json().catch(() => ({}));
-                Alert.alert("Error", data?.message || `Status ${res.status}`);
+                Alert.alert("Error", data?.error || `Status ${res.status}`);
               }
             } catch (err) {
               Alert.alert("Error", err.message);
