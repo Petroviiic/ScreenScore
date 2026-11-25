@@ -157,7 +157,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   barValue: {
-    color: "transparent",
+    color: "#9090A8",
     fontSize: 9,
     fontWeight: "700",
     marginBottom: 4,
@@ -273,6 +273,12 @@ export const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 12,
+  },
+  appIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
     marginRight: 12,
   },
   appRankText: {

@@ -10,6 +10,8 @@ import {
   Linking,
   PanResponder,
   Animated,
+  Image,
+  NativeModules,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { styles, rankColor } from "@/assets/styles/home.styles";
@@ -34,6 +36,39 @@ const MONTHS = [
   "Nov",
   "Dec",
 ];
+
+// Ikonice se ucitavaju jednom po aplikaciji i pamte dok je app otvoren.
+const iconCache = new Map();
+
+function AppIcon({ packageName, fallbackColor, rank }) {
+  const [uri, setUri] = useState(() => iconCache.get(packageName));
+
+  useEffect(() => {
+    if (iconCache.has(packageName)) return;
+    let cancelled = false;
+    const getIcon = NativeModules.ScreenTimeModule?.getAppIcon;
+    if (!getIcon) return;
+    getIcon(packageName)
+      .then((result) => {
+        iconCache.set(packageName, result);
+        if (!cancelled) setUri(result);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [packageName]);
+
+  if (uri) {
+    return <Image source={{ uri }} style={styles.appIcon} />;
+  }
+  // Dok se ikonica ucitava ili ako je nema, prikazi broj kao ranije.
+  return (
+    <View style={[styles.appRank, { backgroundColor: fallbackColor }]}>
+      <Text style={styles.appRankText}>{rank}</Text>
+    </View>
+  );
+}
 
 function weekLabel(weekOffset) {
   if (weekOffset === 0) return "This week";
@@ -393,14 +428,11 @@ export default function Home() {
                 return (
                   <View key={app.packageName} style={styles.appRow}>
                     <View style={styles.appLeft}>
-                      <View
-                        style={[
-                          styles.appRank,
-                          { backgroundColor: rankColor(idx) },
-                        ]}
-                      >
-                        <Text style={styles.appRankText}>{idx + 1}</Text>
-                      </View>
+                      <AppIcon
+                        packageName={app.packageName}
+                        fallbackColor={rankColor(idx)}
+                        rank={idx + 1}
+                      />
                       <View style={styles.appInfo}>
                         <Text style={styles.appName} numberOfLines={1}>
                           {appName.charAt(0).toUpperCase() + appName.slice(1)}

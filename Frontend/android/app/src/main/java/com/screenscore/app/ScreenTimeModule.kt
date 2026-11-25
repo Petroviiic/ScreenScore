@@ -2,13 +2,42 @@ package com.screenscore.app
 
 import android.app.AppOpsManager
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Process
+import android.util.Base64
 import com.facebook.react.bridge.*
+import java.io.ByteArrayOutputStream
 
 class ScreenTimeModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
     override fun getName() = "ScreenTimeModule"
+
+    // packageName -> "data:image/png;base64,..." (null ako aplikacija nema ikonicu)
+    private val iconCache = HashMap<String, String?>()
+
+    @ReactMethod
+    fun getAppIcon(packageName: String, promise: Promise) {
+        if (iconCache.containsKey(packageName)) {
+            promise.resolve(iconCache[packageName])
+            return
+        }
+        val uri = try {
+            val drawable = reactApplicationContext.packageManager.getApplicationIcon(packageName)
+            val size = 96
+            val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            drawable.setBounds(0, 0, size, size)
+            drawable.draw(Canvas(bitmap))
+            val out = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            "data:image/png;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
+        } catch (e: Exception) {
+            null
+        }
+        iconCache[packageName] = uri
+        promise.resolve(uri)
+    }
 
     @ReactMethod
     fun checkPermission(promise: Promise) {
