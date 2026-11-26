@@ -1,9 +1,4 @@
-import React, {
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -21,34 +16,34 @@ import { useShop } from "@/contexts/ShopContext";
 const API_URL = "https://shenika-ovarian-unpiratically.ngrok-free.dev";
 import { shopStyles as styles } from "@/assets/styles/home.styles";
 
+// badge = boja rijetkosti sa providnoscu (isti stil kao ikonice u Groups tabu)
 const RARITY = {
   common: {
     label: "COMMON",
+    name: "Common",
     color: "#9CA3AF",
-    glow: "#6B7280",
-    border: "#374151",
-    badge: "#1F2937",
+    badge: "#9CA3AF22",
     icon: "◆",
   },
   rare: {
     label: "RARE",
+    name: "Rare",
     color: "#60A5FA",
-    glow: "#3B82F6",
-    border: "#1D4ED8",
-    badge: "#1E3A8A",
+    badge: "#60A5FA22",
     icon: "◈",
   },
   legendary: {
     label: "LEGENDARY",
+    name: "Legendary",
     color: "#F59E0B",
-    glow: "#D97706",
-    border: "#92400E",
-    badge: "#78350F",
+    badge: "#F59E0B22",
     icon: "✦",
   },
 };
 
+const ALL_FILTER = { name: "All", color: "#7C6EF5", badge: "#7C6EF526" };
 const FILTERS = ["all", "common", "rare", "legendary"];
+const OWNED_GREY = "#33334A";
 
 // van komponente da bi bila ista funkcija pri svakom renderu
 const keyExtractor = (item) => String(item.id);
@@ -82,29 +77,25 @@ const MessageCard = React.memo(({ item, onBuy }) => {
         onPressOut={handlePressOut}
         onPress={() => !owned && onBuy(item)}
         disabled={owned}
-        style={[
-          styles.card,
-          { borderColor: owned ? "#2D2D2D" : rarity.border },
-          owned && styles.cardOwned,
-        ]}
+        style={[styles.card, owned && styles.cardOwned]}
       >
         <View
           style={[
             styles.rarityBar,
-            { backgroundColor: owned ? "#2D2D2D" : rarity.color },
+            { backgroundColor: owned ? OWNED_GREY : rarity.color },
           ]}
         />
         <View style={styles.cardHeader}>
           <View
             style={[
               styles.rarityBadge,
-              { backgroundColor: owned ? "#1A1A1A" : rarity.badge },
+              { backgroundColor: owned ? "#22222E" : rarity.badge },
             ]}
           >
             <Text
               style={[
                 styles.rarityIcon,
-                { color: owned ? "#444" : rarity.color },
+                { color: owned ? OWNED_GREY : rarity.color },
               ]}
             >
               {rarity.icon}
@@ -112,7 +103,7 @@ const MessageCard = React.memo(({ item, onBuy }) => {
             <Text
               style={[
                 styles.rarityLabel,
-                { color: owned ? "#444" : rarity.color },
+                { color: owned ? OWNED_GREY : rarity.color },
               ]}
             >
               {rarity.label}
@@ -130,16 +121,16 @@ const MessageCard = React.memo(({ item, onBuy }) => {
         <View style={styles.cardFooter}>
           {!owned ? (
             <TouchableOpacity
-              style={[styles.buyButton, { borderColor: rarity.color }]}
+              style={styles.buyButton}
               onPress={() => onBuy(item)}
             >
               <Text style={styles.coinIcon}>🪙</Text>
-              <Text style={[styles.buyButtonText, { color: rarity.color }]}>
+              <Text style={styles.buyButtonText}>
                 {item.price.toLocaleString()}
               </Text>
             </TouchableOpacity>
           ) : (
-            <View style={styles.buyButton}>
+            <View style={[styles.buyButton, styles.buyButtonOwned]}>
               <Text style={styles.ownedFooterText}>Already unlocked</Text>
             </View>
           )}
@@ -162,7 +153,7 @@ export default function ShopScreen() {
       rare: shopData.rare.length,
       legendary: shopData.legendary.length,
     }),
-    [shopData]
+    [shopData],
   );
 
   // Tiho osvjezavanje pri svakom ulasku u tab: stari podaci se prikazu odmah,
@@ -170,7 +161,7 @@ export default function ShopScreen() {
   useFocusEffect(
     useCallback(() => {
       refetchShop();
-    }, [refetchShop])
+    }, [refetchShop]),
   );
 
   const handleRefresh = useCallback(async () => {
@@ -191,7 +182,7 @@ export default function ShopScreen() {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-          }
+          },
         );
 
         if (!res.ok) {
@@ -206,7 +197,7 @@ export default function ShopScreen() {
         Alert.alert("Error", e.message);
       }
     },
-    [refetchShop]
+    [refetchShop],
   );
 
   const handleBuy = useCallback(
@@ -217,10 +208,10 @@ export default function ShopScreen() {
         [
           { text: "Cancel", style: "cancel" },
           { text: "Buy", style: "default", onPress: () => confirmBuy(item) },
-        ]
+        ],
       );
     },
-    [confirmBuy]
+    [confirmBuy],
   );
 
   const renderItemHandlers = useMemo(
@@ -229,14 +220,14 @@ export default function ShopScreen() {
         FILTERS.map((f) => [
           f,
           ({ item }) => <MessageCard item={item} onBuy={handleBuy} />,
-        ])
+        ]),
       ),
-    [handleBuy]
+    [handleBuy],
   );
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+      <StatusBar barStyle="light-content" backgroundColor="#0F0F14" />
 
       <View style={styles.header}>
         <View>
@@ -253,55 +244,31 @@ export default function ShopScreen() {
 
       <View style={styles.filterRow}>
         {FILTERS.map((f) => {
-          const r = RARITY[f];
+          const r = f === "all" ? ALL_FILTER : RARITY[f];
           const isActive = activeFilter === f;
           return (
             <TouchableOpacity
               key={f}
               style={[
                 styles.filterTab,
-                isActive && {
-                  backgroundColor: f === "all" ? "#1F2937" : r.badge,
-                  borderColor: f === "all" ? "#6B7280" : r.color,
-                },
+                isActive && { backgroundColor: r.badge },
               ]}
               onPress={() => setActiveFilter(f)}
             >
-              {f !== "all" && (
-                <Text
-                  style={[
-                    styles.filterIcon,
-                    { color: isActive ? r.color : "#555" },
-                  ]}
-                >
-                  {r.icon}
-                </Text>
-              )}
+              {/* Naziv u jednom redu, broj ispod njega, da sve stane i na uskom ekranu */}
               <Text
-                style={[
-                  styles.filterLabel,
-                  isActive && { color: f === "all" ? "#E5E7EB" : r.color },
-                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={[styles.filterLabel, isActive && { color: r.color }]}
               >
-                {f === "all" ? "All" : r.label}
+                {r.name}
               </Text>
-              <View
-                style={[
-                  styles.filterCount,
-                  isActive && {
-                    backgroundColor: f === "all" ? "#374151" : r.badge,
-                  },
-                ]}
+              <Text
+                numberOfLines={1}
+                style={[styles.filterCountText, isActive && { color: r.color }]}
               >
-                <Text
-                  style={[
-                    styles.filterCountText,
-                    isActive && { color: f === "all" ? "#9CA3AF" : r.color },
-                  ]}
-                >
-                  {counts[f]}
-                </Text>
-              </View>
+                {counts[f]}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -343,7 +310,9 @@ export default function ShopScreen() {
                     <RefreshControl
                       refreshing={refreshing}
                       onRefresh={handleRefresh}
-                      tintColor="#F59E0B"
+                      tintColor="#7C6EF5"
+                      colors={["#7C6EF5"]}
+                      progressBackgroundColor="#1A1A24"
                     />
                   }
                 />

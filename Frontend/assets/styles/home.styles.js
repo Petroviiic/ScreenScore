@@ -986,10 +986,12 @@ export const groupsStyles = StyleSheet.create({
 });
 
 // shop styles
+// Ista paleta kao Home i Groups: pozadina #0F0F14, kartice #1A1A24,
+// ivice #252532, akcenat #7C6EF5, sporedni tekst #9090A8
 export const shopStyles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#0A0A0A",
+    backgroundColor: "#0F0F14",
   },
 
   // Header
@@ -999,28 +1001,26 @@ export const shopStyles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 56,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1A1A1A",
+    paddingBottom: 12,
   },
   headerTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#F9FAFB",
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#FFFFFF",
     letterSpacing: -0.5,
   },
   headerSub: {
     fontSize: 13,
-    color: "#6B7280",
+    color: "#9090A8",
     marginTop: 2,
   },
   pointsChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#1C1A0F",
+    backgroundColor: "#1A1A24",
     borderWidth: 1,
-    borderColor: "#78350F",
+    borderColor: "#2A2A38",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1031,68 +1031,59 @@ export const shopStyles = StyleSheet.create({
   pointsText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#F59E0B",
+    color: "#FFFFFF",
   },
 
-  // Filter tabs
+  // Filter tabs (segmentirana kontrola, sve u jednom redu)
   filterRow: {
     flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 4,
+    padding: 4,
+    gap: 4,
+    backgroundColor: "#1A1A24",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#252532",
   },
   filterTab: {
     flex: 1,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
     paddingVertical: 8,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#1F1F1F",
-    backgroundColor: "#111",
-  },
-  filterIcon: {
-    fontSize: 11,
-    color: "#555",
   },
   filterLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#4B5563",
-    letterSpacing: 0.3,
-  },
-  filterCount: {
-    backgroundColor: "#1A1A1A",
-    borderRadius: 8,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#9090A8",
   },
   filterCountText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#6B7280",
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#55556A",
+    marginTop: 2,
   },
 
   // List
   list: {
     padding: 16,
-    gap: 12,
     paddingBottom: 32,
   },
 
   // Card
   card: {
-    backgroundColor: "#111111",
+    backgroundColor: "#1A1A24",
     borderRadius: 16,
     borderWidth: 1,
+    borderColor: "#252532",
     overflow: "hidden",
     marginBottom: 12,
   },
   cardOwned: {
-    opacity: 0.55,
+    opacity: 0.6,
   },
   rarityBar: {
     height: 3,
@@ -1112,7 +1103,7 @@ export const shopStyles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   rarityIcon: {
     fontSize: 11,
@@ -1123,10 +1114,10 @@ export const shopStyles = StyleSheet.create({
     letterSpacing: 1,
   },
   ownedBadge: {
-    backgroundColor: "#14532D",
+    backgroundColor: "#4ADE8022",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   ownedText: {
     fontSize: 10,
@@ -1139,14 +1130,14 @@ export const shopStyles = StyleSheet.create({
   messageText: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#E5E7EB",
+    color: "#FFFFFF",
     fontStyle: "italic",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
     lineHeight: 22,
   },
   messageTextOwned: {
-    color: "#4B5563",
+    color: "#9090A8",
   },
 
   // Footer
@@ -1160,11 +1151,12 @@ export const shopStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    borderWidth: 1,
-    borderColor: "#2D2D2D",
-    borderRadius: 10,
-    paddingVertical: 10,
-    backgroundColor: "#0D0D0D",
+    borderRadius: 12,
+    paddingVertical: 11,
+    backgroundColor: "#7C6EF5",
+  },
+  buyButtonOwned: {
+    backgroundColor: "#22222E",
   },
   coinIcon: {
     fontSize: 15,
@@ -1172,23 +1164,24 @@ export const shopStyles = StyleSheet.create({
   buyButtonText: {
     fontSize: 15,
     fontWeight: "700",
+    color: "#FFFFFF",
   },
   ownedFooterText: {
     fontSize: 13,
-    color: "#374151",
+    color: "#9090A8",
     fontWeight: "500",
   },
 
   // States
   centered: {
     flex: 1,
-    backgroundColor: "#0A0A0A",
+    backgroundColor: "#0F0F14",
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
   },
   loadingText: {
-    color: "#6B7280",
+    color: "#9090A8",
     fontSize: 14,
     marginTop: 8,
   },
@@ -1202,7 +1195,7 @@ export const shopStyles = StyleSheet.create({
   },
   errorSub: {
     fontSize: 13,
-    color: "#6B7280",
+    color: "#9090A8",
     textAlign: "center",
     paddingHorizontal: 32,
   },
@@ -1210,13 +1203,11 @@ export const shopStyles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 24,
     paddingVertical: 10,
-    backgroundColor: "#1F2937",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#374151",
+    backgroundColor: "#7C6EF5",
+    borderRadius: 12,
   },
   retryText: {
-    color: "#E5E7EB",
+    color: "#FFFFFF",
     fontWeight: "600",
   },
 
@@ -1232,13 +1223,13 @@ export const shopStyles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#374151",
+    color: "#FFFFFF",
   },
   emptySub: {
-    fontSize: 13,
-    color: "#4B5563",
+    fontSize: 14,
+    color: "#666",
     textAlign: "center",
   },
 });
