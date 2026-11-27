@@ -30,6 +30,43 @@ async function authFetch(path, options = {}) {
   });
 }
 
+// ID ulogovanog korisnika citamo iz JWT tokena ("sub" claim), jer backend
+// nema posebnu rutu koja vraca trenutnog korisnika.
+async function getCurrentUserId() {
+  try {
+    const token = await SecureStore.getItemAsync("jwt_token");
+    if (!token) return null;
+    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
+    const sub = JSON.parse(atob(padded)).sub;
+    return sub != null ? Number(sub) : null;
+  } catch {
+    return null;
+  }
+}
+
+function todayDateString() {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+// Backend nema rutu za listu clanova grupe, pa clanove uzimamo iz
+// get-group-stats. Ta ruta vraca samo clanove koji imaju statistiku za taj dan.
+async function fetchGroupMembers(groupId) {
+  const res = await authFetch(`/v1/stats/get-group-stats`, {
+    method: "POST",
+    body: JSON.stringify({
+      group_id: groupId,
+      desired_date: todayDateString(),
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `Status ${res.status}`);
+  return Array.isArray(data.data) ? data.data : [];
+}
+
 // ─── Validacija (ista pravila kao na backendu: groups.go isValidString) ──────
 const GROUP_NAME_MAX = 15;
 const INVITE_CODE_MAX = 10;
@@ -44,7 +81,11 @@ function validateGroupName(name) {
 }
 
 function validateInviteCode(code) {
-  if (code.length < 3 || code.length > INVITE_CODE_MAX || !ALPHANUMERIC.test(code))
+  if (
+    code.length < 3 ||
+    code.length > INVITE_CODE_MAX ||
+    !ALPHANUMERIC.test(code)
+  )
     return "Invalid invite code. Check the code and try again.";
   return null;
 }
@@ -95,9 +136,11 @@ function EmptyGroups({ onJoin, onCreate }) {
 }
 
 // ─── Member row ───────────────────────────────────────────────────────────────
-function MemberRow({ member, isOwner, currentUserId, onKick }) {
+function MemberRow({ member, currentUserId, onKick }) {
   const isMe = member.id === currentUserId;
-  const canKick = isOwner && !isMe;
+  // Backend dozvoljava svakom clanu da izbaci drugog (grupe nemaju vlasnika),
+  // pa Kick prikazujemo kod svih osim kod samog sebe.
+  const canKick = !isMe && currentUserId != null;
 
   return (
     <View style={styles.memberRow}>
@@ -110,12 +153,7 @@ function MemberRow({ member, isOwner, currentUserId, onKick }) {
         <Text style={styles.memberName}>
           {member.username || member.email || `User #${member.id}`}
         </Text>
-        {member.is_owner && (
-          <View style={styles.ownerBadge}>
-            <Text style={styles.ownerBadgeText}>owner</Text>
-          </View>
-        )}
-        {isMe && !member.is_owner && (
+        {isMe && (
           <View style={[styles.ownerBadge, styles.meBadge]}>
             <Text style={styles.ownerBadgeText}>you</Text>
           </View>
@@ -133,7 +171,26 @@ function MemberRow({ member, isOwner, currentUserId, onKick }) {
 // ─── Group card ───────────────────────────────────────────────────────────────
 function GroupCard({ group, currentUserId, onLeave, onKick }) {
   const [expanded, setExpanded] = useState(false);
-  const isOwner = group.owner_id === currentUserId;
+  const [members, setMembers] = useState(null);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState(null);
+
+  const loadMembers = useCallback(async () => {
+    setMembersLoading(true);
+    setMembersError(null);
+    try {
+      setMembers(await fetchGroupMembers(group.id));
+    } catch (err) {
+      setMembersError(err.message);
+    } finally {
+      setMembersLoading(false);
+    }
+  }, [group.id]);
+
+  // Clanove ucitavamo tek kad se kartica otvori
+  useEffect(() => {
+    if (expanded) loadMembers();
+  }, [expanded, loadMembers]);
 
   const copyInviteCode = () => {
     Alert.alert("Invite Code", group.invite_code, [{ text: "OK" }]);
@@ -155,9 +212,7 @@ function GroupCard({ group, currentUserId, onLeave, onKick }) {
         <View style={styles.groupHeaderInfo}>
           <Text style={styles.groupName}>{group.name}</Text>
           <Text style={styles.groupMeta}>
-            {group.members?.length ?? 0} member
-            {(group.members?.length ?? 0) !== 1 ? "s" : ""}
-            {isOwner ? " · owner" : ""}
+            {members ? `${members.length} active today` : "Tap to see members"}
           </Text>
         </View>
         <Text style={[styles.chevron, expanded && styles.chevronOpen]}>›</Text>
@@ -174,15 +229,26 @@ function GroupCard({ group, currentUserId, onLeave, onKick }) {
       {expanded && (
         <View style={styles.membersList}>
           <View style={styles.membersDivider} />
-          {(group.members || []).map((member) => (
-            <MemberRow
-              key={member.id}
-              member={member}
-              isOwner={isOwner}
-              currentUserId={currentUserId}
-              onKick={(m) => onKick(group, m)}
-            />
-          ))}
+          {membersLoading && !members ? (
+            <ActivityIndicator color="#7C6EF5" style={{ marginVertical: 12 }} />
+          ) : membersError ? (
+            <Text style={styles.groupMeta}>
+              Could not load members: {membersError}
+            </Text>
+          ) : members && members.length === 0 ? (
+            <Text style={styles.groupMeta}>
+              No members have synced screen time today.
+            </Text>
+          ) : (
+            (members || []).map((member) => (
+              <MemberRow
+                key={member.id}
+                member={member}
+                currentUserId={currentUserId}
+                onKick={(m) => onKick(group, m, loadMembers)}
+              />
+            ))
+          )}
         </View>
       )}
 
@@ -263,6 +329,10 @@ export default function Groups() {
   const [refreshing, setRefreshing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
 
+  useEffect(() => {
+    getCurrentUserId().then(setCurrentUserId);
+  }, []);
+
   // Modals
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
@@ -288,7 +358,7 @@ export default function Groups() {
     try {
       const res = await authFetch(
         `/v1/groups/create/${encodeURIComponent(name)}`,
-        { method: "POST" }
+        { method: "POST" },
       );
       if (res.ok) {
         setShowCreate(false);
@@ -313,7 +383,7 @@ export default function Groups() {
     try {
       const res = await authFetch(
         `/v1/groups/join/${encodeURIComponent(code)}`,
-        { method: "POST" }
+        { method: "POST" },
       );
       if (res.ok) {
         setShowJoin(false);
@@ -343,7 +413,7 @@ export default function Groups() {
             try {
               const res = await authFetch(
                 `/v1/groups/leave/${encodeURIComponent(group.id)}`,
-                { method: "POST" }
+                { method: "POST" },
               );
               if (res.ok) refetchGroups();
               else {
@@ -355,12 +425,13 @@ export default function Groups() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
   // ── Kick ─────────────────────────────────────────────────────────────────────
-  const handleKick = (group, member) => {
+  // onDone: ponovo ucitaj clanove te kartice nakon uspjesnog izbacivanja
+  const handleKick = (group, member, onDone) => {
     Alert.alert(
       "Kick member",
       `Remove ${
@@ -380,7 +451,7 @@ export default function Groups() {
                   user_to_kick_id: member.id,
                 }),
               });
-              if (res.ok) refetchGroups();
+              if (res.ok) onDone?.();
               else {
                 const data = await res.json().catch(() => ({}));
                 Alert.alert("Error", data?.error || `Status ${res.status}`);
@@ -390,7 +461,7 @@ export default function Groups() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
